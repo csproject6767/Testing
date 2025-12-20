@@ -201,18 +201,6 @@ body {
   font-size: 0.8rem;
   text-transform: uppercase;
 }
-
-/* NEW: Face direction labels */
-.face-label {
-  position: absolute;
-  font-size: 1.8rem;
-  font-weight: 700;
-  color: rgba(165, 180, 252, 0.25);
-  pointer-events: none;
-  z-index: 5;
-  text-shadow: 0 0 20px rgba(99, 102, 241, 0.4);
-  user-select: none;
-}
 </style>
 </head>
 <body>
@@ -272,15 +260,6 @@ body {
       <button class="move-btn" onclick="screenMove('F')">F</button>
       <button class="move-btn" onclick="screenMove('F_prime')">F'</button>
     </div>
-
-    <!-- NEW: Face direction labels -->
-    <div class="face-label" style="top: 50%; left: 10%; transform: translateY(-50%);">L</div>
-    <div class="face-label" style="top: 50%; right: 10%; transform: translateY(-50%);">R</div>
-    <div class="face-label" style="top: 10%; left: 50%; transform: translateX(-50%);">U</div>
-    <div class="face-label" style="bottom: 90px; left: 50%; transform: translateX(-50%);">D</div>
-    <div class="face-label" style="top: 50%; left: 50%; transform: translate(-50%, -50%);">F</div>
-    <div class="face-label" style="top: 50%; left: 50%; transform: translate(-50%, -50%); opacity: 0.15;">B</div>
-
     <div id="paint-palette" style="position:absolute; bottom:90px; right:40px; display:none; flex-direction:column; gap:10px; align-items:center;">
       <div style="display:flex; gap:8px;">
         <div onclick="selectPaintColor('U')" style="width:24px;height:24px;border-radius:50%;background:#ffffff;border:2px solid #e5e7eb;cursor:pointer;"></div>
@@ -311,33 +290,7 @@ const paintColors = {
 let isRotating = false, isChangingView = false;
 let currentView = { theta: 0, phi: 0.3 };
 const zoomDistance = 12;
-// --- Solve commentary + helpers ---
-const solveMessages = {
-  scan: [
-    'Scanning cross & F2L pairs',
-    'Reading current cube pattern',
-    'Estimating piece cycles & orbits',
-    'Profiling edge and corner misplacements'
-  ],
-  eval: [
-    'Comparing CFOP vs beginner routes',
-    'Checking white cross efficiencies',
-    'Preserving existing solved blocks',
-    'Scoring possible first-layer options'
-  ],
-  method: [
-    'Found fastest method: CFOP-style route',
-    'Using: Optimized F2L + 2-Look OLL',
-    'Using: Cross-first CFOP hybrid',
-    'Using: Block-building + CFOP mix'
-  ],
-  execute: [
-    'Executing: Cross → F2L → OLL → PLL',
-    'Executing: Lock cross, build all F2L pairs',
-    'Executing: Orient last layer, then permute',
-    'Executing: Preserve solved slots while finishing LL'
-  ]
-};
+
 function pickRandom(list) { return list[Math.floor(Math.random() * list.length)]; }
 function setSolveInfo(text) {
   const el = document.getElementById('solve-info');
@@ -355,10 +308,7 @@ function showHowItWorks() {
 - Click any move (R, U, F, etc.) as many times as you want.
 - The cube turns just like a real 3×3.
 3) Solve
-- When you press “Solve”, the app:
-  • Analyzes your full move history,
-  • Shows random CFOP-style technique notes,
-  • Then rewinds your exact sequence back to the solved state.
+- When you press “Solve”, the cube quickly performs all the reverse moves so you can watch it solve smoothly.
 4) Reset
 - “Reset Cube” reloads everything back to the original solved cube and main menu style.`
   );
@@ -436,7 +386,6 @@ function setup3D() {
       }
     }
   }
-  // ---- input cube for paint mode (separate from main cube) ----
   inputCubeGroup = new THREE.Group();
   scene.add(inputCubeGroup);
   for (let x = -1; x <= 1; x++) {
@@ -457,7 +406,7 @@ function setup3D() {
     }
   }
   inputCubeGroup.position.set(-5, 0, 0);
-  inputCubeGroup.visible = false; // hidden by default
+  inputCubeGroup.visible = false;
   camera.position.set(
     zoomDistance * Math.cos(currentView.phi) * Math.sin(currentView.theta),
     zoomDistance * Math.sin(currentView.phi),
@@ -504,13 +453,11 @@ function screenMove(move) {
     case 'F': screenDir = 'front'; break;
     case 'B': screenDir = 'back'; break;
   }
-  // --- compute camera basis vectors in world space ---
   camera.updateMatrixWorld(true);
   const m = camera.matrixWorld.elements;
   const camRight = new THREE.Vector3(m[0], m[1], m[2]).normalize();
   const camUp = new THREE.Vector3(m[4], m[5], m[6]).normalize();
   const camForward = new THREE.Vector3(m[8], m[9], m[10]).normalize().negate();
-  // pick the desired direction relative to the *screen*
   let worldDir = new THREE.Vector3();
   switch (screenDir) {
     case 'right': worldDir.copy(camRight); break;
@@ -520,7 +467,6 @@ function screenMove(move) {
     case 'front': worldDir.copy(camForward); break;
     case 'back': worldDir.copy(camForward).negate(); break;
   }
-  // project that onto the cube's fixed axes (x,y,z)
   const xAxis = new THREE.Vector3(1,0,0);
   const yAxis = new THREE.Vector3(0,1,0);
   const zAxis = new THREE.Vector3(0,0,1);
@@ -577,40 +523,44 @@ function scramble() {
     count++;
   }, 260);
 }
+
+// NEW: Fast animated solving – cube visibly moves back to solved
 function solveCube() {
   if (moveHistory.length === 0) return;
+
   const titleEl = document.getElementById('method-title');
   const originalTitle = titleEl.innerText;
-  const reverseMoves = moveHistory.slice().reverse().map(m => m.endsWith('_prime') ? m.replace('_prime','') : m + '_prime');
-  titleEl.innerText = 'Analyzing scramble...';
-  setSolveInfo(pickRandom(solveMessages.scan));
-  setTimeout(() => {
-    titleEl.innerText = 'Evaluating strategies...';
-    setSolveInfo(pickRandom(solveMessages.eval));
-    setTimeout(() => {
-      titleEl.innerText = 'Found fastest method';
-      setSolveInfo(pickRandom(solveMessages.method));
-      setTimeout(() => {
-        let idx = 0;
-        const total = reverseMoves.length;
-        setSolveInfo(pickRandom(solveMessages.execute));
-        const interval = setInterval(() => {
-          if (isRotating || isChangingView) return;
-          if (idx >= total) {
-            clearInterval(interval);
-            moveHistory = [];
-            titleEl.innerText = 'Solved!';
-            setSolveInfo('Ready for another scramble');
-            setTimeout(() => { titleEl.innerText = originalTitle; setSolveInfo(''); }, 1800);
-            return;
-          }
-          titleEl.innerText = `Solving (${total - idx}/${total})...`;
-          screenMove(reverseMoves[idx]);
-          idx++;
-        }, 320);
-      }, 900);
-    }, 1100);
-  }, 1100);
+
+  // Get reverse moves
+  const reverseMoves = moveHistory.slice().reverse().map(m => 
+    m.endsWith('_prime') ? m.replace('_prime', '') : m + '_prime'
+  );
+
+  titleEl.innerText = 'Solving...';
+  setSolveInfo('');
+
+  let idx = 0;
+  const total = reverseMoves.length;
+
+  const performNext = () => {
+    if (idx >= total) {
+      moveHistory = [];
+      titleEl.innerText = 'Solved!';
+      setTimeout(() => { titleEl.innerText = originalTitle; }, 1500);
+      return;
+    }
+
+    titleEl.innerText = `Solving (${total - idx}/${total})`;
+
+    // Reuse screenMove logic to ensure correct face detection and animation
+    screenMove(reverseMoves[idx]);
+    idx++;
+
+    // Wait for current rotation to finish before next move
+    setTimeout(performNext, 280); // slightly longer than animation duration (0.25s)
+  };
+
+  performNext();
 }
 function resetCube() { location.reload(); }
 function resetView() { snapAndReorient('front'); }
