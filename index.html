@@ -336,7 +336,6 @@ body {
   </div>
 </div>
 
-<!-- UPDATED: More detailed tutorial -->
 <div id="tutorial-modal">
   <div id="tutorial-content">
     <h2>How to Solve a Rubik’s Cube<br><small>Beginner Method – 7 Detailed Steps</small></h2>
@@ -416,6 +415,9 @@ const paintGuideSteps = [
 ];
 let currentPaintStep = 0;
 
+// NEW: Separate move history for paint mode (moves made after painting)
+let paintMoveHistory = [];
+
 function openTutorial() {
   document.getElementById('tutorial-modal').style.display = 'flex';
 }
@@ -440,7 +442,8 @@ function showHowItWorks() {
 - When you press “Solve”, the cube quickly performs all the reverse moves so you can watch it solve smoothly.
 4) Paint Mode
 - Click colors and paint faces to create any cube state.
-- Step-by-step solving guide appears as you paint!
+- You can then make moves — they are recorded.
+- Click "Start solving" to rewind back to your painted state!
 5) Reset
 - “Reset Cube” reloads everything back to the original solved cube and main menu style.`
   );
@@ -471,6 +474,9 @@ function startPaintMode() {
     duration: 0.8,
     ease: "power2.out"
   });
+
+  // NEW: Clear paint-specific move history when entering paint mode
+  paintMoveHistory = [];
 }
 function exitPaintMode() {
   paintMode = false;
@@ -479,12 +485,45 @@ function exitPaintMode() {
   document.getElementById('paint-palette').style.display = 'none';
   setSolveInfo('');
 }
+// NEW: Real solver for painted cube — rewinds moves made after painting
+function startSolvingPaintedCube() {
+  if (paintMoveHistory.length === 0) {
+    alert('No moves to rewind! Try making some moves after painting.');
+    exitPaintMode();
+    return;
+  }
+
+  const titleEl = document.getElementById('method-title');
+  const originalTitle = titleEl.innerText;
+
+  const reverseMoves = paintMoveHistory.slice().reverse().map(m => 
+    m.endsWith('_prime') ? m.replace('_prime', '') : m + '_prime'
+  );
+
+  titleEl.innerText = 'Solving painted cube...';
+  setSolveInfo('');
+
+  let idx = 0;
+  const total = reverseMoves.length;
+
+  const performNext = () => {
+    if (idx >= total) {
+      paintMoveHistory = [];
+      titleEl.innerText = 'Solved!';
+      setTimeout(() => { titleEl.innerText = originalTitle; exitPaintMode(); }, 1000);
+      return;
+    }
+
+    screenMove(reverseMoves[idx]);
+    idx++;
+
+    setTimeout(performNext, 180);
+  };
+
+  performNext();
+}
 function selectPaintColor(face) {
   currentPaintColor = paintColors[face];
-}
-function startSolvingPaintedCube() {
-  alert('Painted cube ready – now plug in solver logic here.');
-  exitPaintMode();
 }
 const raycaster = new THREE.Raycaster();
 const mouse = new THREE.Vector2();
@@ -673,16 +712,26 @@ function screenMove(move) {
     axisName = 'z';
     layerSign = dotZ > 0 ? 1 : -1;
   }
-  moveHistory.push(move);
+
+  // NEW: Record moves in paint mode separately
+  if (paintMode) {
+    paintMoveHistory.push(move);
+  } else {
+    moveHistory.push(move);
+  }
+
   handleMove(axisName, layerSign, prime);
 }
 function handleMove(axis, layerSign, prime) {
   if (isRotating) return;
   isRotating = true;
   const pivot = new THREE.Group();
-  cubeGroup.add(pivot);
+  // Use the correct group: inputCubeGroup in paint mode, cubeGroup otherwise
+  const activeGroup = paintMode ? inputCubeGroup : cubeGroup;
+  const activeCubies = paintMode ? inputCubies : cubies;
+  activeGroup.add(pivot);
   const moving = [];
-  cubies.forEach(c => {
+  activeCubies.forEach(c => {
     if (Math.abs(c.position[axis] - layerSign) < 0.1) {
       pivot.attach(c);
       moving.push(c);
@@ -696,7 +745,7 @@ function handleMove(axis, layerSign, prime) {
     ease: "power2.inOut",
     onComplete: () => {
       moving.forEach(c => {
-        cubeGroup.attach(c);
+        activeGroup.attach(c);
         c.position.set(Math.round(c.position.x), Math.round(c.position.y), Math.round(c.position.z));
       });
       scene.remove(pivot);
