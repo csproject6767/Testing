@@ -29,6 +29,7 @@ body {
   font-family: -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
   color: var(--text-main);
   overflow: hidden;
+  touch-action: none;
 }
 /* Start overlay */
 #overlay {
@@ -291,6 +292,12 @@ let isRotating = false, isChangingView = false;
 let currentView = { theta: 0, phi: 0.3 };
 const zoomDistance = 12;
 
+// Drag-to-rotate variables
+let isDragging = false;
+let previousMouseX = 0;
+let previousMouseY = 0;
+const rotationSpeed = 0.005;
+
 function setSolveInfo(text) {
   const el = document.getElementById('solve-info');
   if (!el) return;
@@ -306,6 +313,7 @@ function showHowItWorks() {
 - Use the face buttons (F, R, B, L, U, D) to rotate the view.
 - Click any move (R, U, F, etc.) as many times as you want.
 - The cube turns just like a real 3×3.
+- Touch and drag (or click and drag) anywhere on the cube to freely rotate it!
 3) Solve
 - When you press “Solve”, the cube quickly performs all the reverse moves so you can watch it solve smoothly.
 4) Reset
@@ -345,19 +353,53 @@ function startSolvingPaintedCube() {
 const raycaster = new THREE.Raycaster();
 const mouse = new THREE.Vector2();
 function onPointerDown(event) {
-  if (!paintMode) return;
-  const rect = renderer.domElement.getBoundingClientRect();
-  mouse.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
-  mouse.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
-  raycaster.setFromCamera(mouse, camera);
-  const intersects = raycaster.intersectObjects(inputCubies, false);
-  if (intersects.length === 0) return;
-  const hit = intersects[0];
-  const mesh = hit.object;
-  const faceIndex = Math.floor(hit.faceIndex / 2);
-  const mat = mesh.material[faceIndex];
-  if (!mat) return;
-  mat.color.set(currentPaintColor);
+  if (paintMode) {
+    const rect = renderer.domElement.getBoundingClientRect();
+    mouse.x = ((event.clientX || event.touches[0].clientX) - rect.left) / rect.width * 2 - 1;
+    mouse.y = -((event.clientY || event.touches[0].clientY) - rect.top) / rect.height * 2 + 1;
+    raycaster.setFromCamera(mouse, camera);
+    const intersects = raycaster.intersectObjects(inputCubies, false);
+    if (intersects.length === 0) return;
+    const hit = intersects[0];
+    const mesh = hit.object;
+    const faceIndex = Math.floor(hit.faceIndex / 2);
+    const mat = mesh.material[faceIndex];
+    if (!mat) return;
+    mat.color.set(currentPaintColor);
+    return;
+  }
+
+  isDragging = true;
+  previousMouseX = event.clientX || event.touches[0].clientX;
+  previousMouseY = event.clientY || event.touches[0].clientY;
+}
+function onPointerMove(event) {
+  if (!isDragging || isRotating || isChangingView) return;
+
+  const clientX = event.clientX || (event.touches && event.touches[0].clientX);
+  const clientY = event.clientY || (event.touches && event.touches[0].clientY);
+  if (clientX === undefined) return;
+
+  const deltaX = clientX - previousMouseX;
+  const deltaY = clientY - previousMouseY;
+
+  currentView.theta -= deltaX * rotationSpeed;
+  currentView.phi -= deltaY * rotationSpeed;
+
+  currentView.phi = Math.max(0.1, Math.min(Math.PI - 0.1, currentView.phi));
+
+  camera.position.set(
+    zoomDistance * Math.cos(currentView.phi) * Math.sin(currentView.theta),
+    zoomDistance * Math.sin(currentView.phi),
+    zoomDistance * Math.cos(currentView.phi) * Math.cos(currentView.theta)
+  );
+  camera.lookAt(0, 0, 0);
+
+  previousMouseX = clientX;
+  previousMouseY = clientY;
+}
+function onPointerUp() {
+  isDragging = false;
 }
 function setup3D() {
   const container = document.getElementById('cube-container');
@@ -412,7 +454,14 @@ function setup3D() {
     zoomDistance * Math.cos(currentView.phi) * Math.cos(currentView.theta)
   );
   camera.lookAt(0, 0, 0);
+
   renderer.domElement.addEventListener('pointerdown', onPointerDown);
+  renderer.domElement.addEventListener('pointermove', onPointerMove);
+  renderer.domElement.addEventListener('pointerup', onPointerUp);
+  renderer.domElement.addEventListener('pointercancel', onPointerUp);
+  renderer.domElement.addEventListener('touchstart', onPointerDown, { passive: false });
+  renderer.domElement.addEventListener('touchmove', onPointerMove, { passive: false });
+
   animate();
 }
 function snapAndReorient(targetFace) {
@@ -501,7 +550,6 @@ function handleMove(axis, layerSign, prime) {
   });
   const angle = (prime ? 1 : -1) * Math.PI / 2;
 
-  // Slick easing for all moves (including solving)
   gsap.to(pivot.rotation, {
     [axis]: '+=' + angle,
     duration: 0.18,
@@ -516,18 +564,17 @@ function handleMove(axis, layerSign, prime) {
     }
   });
 }
+// NEW: Longer scramble for more impressive fast solve
 function scramble() {
   let count = 0;
   const moves = ['R','R_prime','L','L_prime','U','U_prime','F','F_prime'];
   const interval = setInterval(() => {
     if (isRotating || isChangingView) return;
-    if (count >= 15) { clearInterval(interval); return; }
+    if (count >= 25) { clearInterval(interval); return; }  // Changed from 15 to 25
     screenMove(moves[Math.floor(Math.random() * moves.length)]);
     count++;
   }, 260);
 }
-
-// Slick fast solving – no extra pauses, smooth chained animations
 function solveCube() {
   if (moveHistory.length === 0) return;
 
@@ -552,11 +599,9 @@ function solveCube() {
       return;
     }
 
-    // No progress text – keeps it clean and slick
     screenMove(reverseMoves[idx]);
     idx++;
 
-    // Chain next move exactly when current animation ends (0.18s)
     setTimeout(performNext, 180);
   };
 
