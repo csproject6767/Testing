@@ -202,30 +202,16 @@ body {
   text-transform: uppercase;
 }
 
-/* === NEW: Helper Solved Cube (Reference) === */
-#helper-cube-container {
+/* NEW: Face direction labels */
+.face-label {
   position: absolute;
-  bottom: 34px;
-  left: 24px;
-  width: 100px;
-  height: 100px;
-  border-radius: 16px;
-  background: rgba(15, 23, 42, 0.7);
-  backdrop-filter: blur(10px);
-  border: 1px solid rgba(148, 163, 184, 0.3);
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6);
-  overflow: hidden;
-  z-index: 9;
-}
-#helper-label {
-  position: absolute;
-  top: -24px;
-  left: 0;
-  font-size: 0.75rem;
-  color: var(--text-muted);
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  opacity: 0.9;
+  font-size: 1.8rem;
+  font-weight: 700;
+  color: rgba(165, 180, 252, 0.25);
+  pointer-events: none;
+  z-index: 5;
+  text-shadow: 0 0 20px rgba(99, 102, 241, 0.4);
+  user-select: none;
 }
 </style>
 </head>
@@ -287,10 +273,13 @@ body {
       <button class="move-btn" onclick="screenMove('F_prime')">F'</button>
     </div>
 
-    <!-- NEW: Helper Solved Cube -->
-    <div id="helper-cube-container">
-      <div id="helper-label">Solved Reference</div>
-    </div>
+    <!-- NEW: Face direction labels -->
+    <div class="face-label" style="top: 50%; left: 10%; transform: translateY(-50%);">L</div>
+    <div class="face-label" style="top: 50%; right: 10%; transform: translateY(-50%);">R</div>
+    <div class="face-label" style="top: 10%; left: 50%; transform: translateX(-50%);">U</div>
+    <div class="face-label" style="bottom: 90px; left: 50%; transform: translateX(-50%);">D</div>
+    <div class="face-label" style="top: 50%; left: 50%; transform: translate(-50%, -50%);">F</div>
+    <div class="face-label" style="top: 50%; left: 50%; transform: translate(-50%, -50%); opacity: 0.15;">B</div>
 
     <div id="paint-palette" style="position:absolute; bottom:90px; right:40px; display:none; flex-direction:column; gap:10px; align-items:center;">
       <div style="display:flex; gap:8px;">
@@ -322,10 +311,6 @@ const paintColors = {
 let isRotating = false, isChangingView = false;
 let currentView = { theta: 0, phi: 0.3 };
 const zoomDistance = 12;
-
-// NEW: Helper cube variables
-let helperScene, helperCamera, helperRenderer, helperCubeGroup;
-
 // --- Solve commentary + helpers ---
 const solveMessages = {
   scan: [
@@ -425,50 +410,6 @@ function onPointerDown(event) {
   if (!mat) return;
   mat.color.set(currentPaintColor);
 }
-
-// NEW: Create the small solved helper cube
-function createHelperCube() {
-  const container = document.getElementById('helper-cube-container');
-  helperScene = new THREE.Scene();
-  helperCamera = new THREE.PerspectiveCamera(40, 1, 0.1, 1000);
-  helperRenderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
-  helperRenderer.setSize(100, 100);
-  helperRenderer.setClearColor(0x000000, 0);
-  container.appendChild(helperRenderer.domElement);
-
-  helperScene.add(new THREE.AmbientLight(0xffffff, 0.8));
-  const light = new THREE.DirectionalLight(0xffffff, 0.6);
-  light.position.set(2, 3, 4);
-  helperScene.add(light);
-
-  helperCubeGroup = new THREE.Group();
-  helperScene.add(helperCubeGroup);
-
-  const colors = [0xff0000, 0xffa500, 0xffffff, 0xffff00, 0x00ff00, 0x0000ff]; // R L U D F B
-  for (let x = -1; x <= 1; x++) {
-    for (let y = -1; y <= 1; y++) {
-      for (let z = -1; z <= 1; z++) {
-        if (x === 0 && y === 0 && z === 0) continue;
-        const materials = colors.map(c => new THREE.MeshLambertMaterial({ color: c }));
-        const cubie = new THREE.Mesh(new THREE.BoxGeometry(0.95, 0.95, 0.95), materials);
-        cubie.position.set(x * 0.7, y * 0.7, z * 0.7);
-        helperCubeGroup.add(cubie);
-      }
-    }
-  }
-
-  helperCamera.position.set(5, 4, 5);
-  helperCamera.lookAt(0, 0, 0);
-
-  // Gentle slow rotation for visual appeal
-  function animateHelper() {
-    helperCubeGroup.rotation.y += 0.005;
-    helperRenderer.render(helperScene, helperCamera);
-    requestAnimationFrame(animateHelper);
-  }
-  animateHelper();
-}
-
 function setup3D() {
   const container = document.getElementById('cube-container');
   scene = new THREE.Scene();
@@ -524,10 +465,6 @@ function setup3D() {
   );
   camera.lookAt(0, 0, 0);
   renderer.domElement.addEventListener('pointerdown', onPointerDown);
-
-  // NEW: Initialize the helper cube after main setup
-  createHelperCube();
-
   animate();
 }
 function snapAndReorient(targetFace) {
