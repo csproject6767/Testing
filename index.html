@@ -564,13 +564,13 @@ function handleMove(axis, layerSign, prime) {
     }
   });
 }
-// NEW: Longer scramble for more impressive fast solve
+// NEW: Even deeper scramble → longer, faster, more impressive solve animation
 function scramble() {
   let count = 0;
   const moves = ['R','R_prime','L','L_prime','U','U_prime','F','F_prime'];
   const interval = setInterval(() => {
     if (isRotating || isChangingView) return;
-    if (count >= 25) { clearInterval(interval); return; }  // Changed from 15 to 25
+    if (count >= 40) { clearInterval(interval); return; }  // 40 moves for epic solve
     screenMove(moves[Math.floor(Math.random() * moves.length)]);
     count++;
   }, 260);
