@@ -291,7 +291,6 @@ let isRotating = false, isChangingView = false;
 let currentView = { theta: 0, phi: 0.3 };
 const zoomDistance = 12;
 
-function pickRandom(list) { return list[Math.floor(Math.random() * list.length)]; }
 function setSolveInfo(text) {
   const el = document.getElementById('solve-info');
   if (!el) return;
@@ -501,8 +500,12 @@ function handleMove(axis, layerSign, prime) {
     }
   });
   const angle = (prime ? 1 : -1) * Math.PI / 2;
+
+  // Slick easing for all moves (including solving)
   gsap.to(pivot.rotation, {
-    [axis]: angle, duration: 0.25,
+    [axis]: '+=' + angle,
+    duration: 0.18,
+    ease: "power2.inOut",
     onComplete: () => {
       moving.forEach(c => {
         cubeGroup.attach(c);
@@ -524,14 +527,13 @@ function scramble() {
   }, 260);
 }
 
-// NEW: Fast animated solving – cube visibly moves back to solved
+// Slick fast solving – no extra pauses, smooth chained animations
 function solveCube() {
   if (moveHistory.length === 0) return;
 
   const titleEl = document.getElementById('method-title');
   const originalTitle = titleEl.innerText;
 
-  // Get reverse moves
   const reverseMoves = moveHistory.slice().reverse().map(m => 
     m.endsWith('_prime') ? m.replace('_prime', '') : m + '_prime'
   );
@@ -546,18 +548,16 @@ function solveCube() {
     if (idx >= total) {
       moveHistory = [];
       titleEl.innerText = 'Solved!';
-      setTimeout(() => { titleEl.innerText = originalTitle; }, 1500);
+      setTimeout(() => { titleEl.innerText = originalTitle; }, 1000);
       return;
     }
 
-    titleEl.innerText = `Solving (${total - idx}/${total})`;
-
-    // Reuse screenMove logic to ensure correct face detection and animation
+    // No progress text – keeps it clean and slick
     screenMove(reverseMoves[idx]);
     idx++;
 
-    // Wait for current rotation to finish before next move
-    setTimeout(performNext, 280); // slightly longer than animation duration (0.25s)
+    // Chain next move exactly when current animation ends (0.18s)
+    setTimeout(performNext, 180);
   };
 
   performNext();
