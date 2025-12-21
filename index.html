@@ -67,13 +67,18 @@
 let scene, camera, renderer, cubies = [], cubeGroup;
 let solveMode = false;
 let isRotating = false;
-let currentPhase = 'idle';
 let currentView = { theta: 0, phi: 0.3 };
 const zoomDistance = 11;
 
-// ✅ CORRECT RUBIK'S COLORS: White(Top)-Yellow(Bottom), Red-Orange, Blue-Green
-// Standard Order: Up, Right, Front, Down, Left, Back
-const FACE_COLORS = [0xffffff, 0xff4444, 0x22c55e, 0xfacc15, 0xf97316, 0x3b82f6];
+// ✅ FIXED COLORS: White-Yellow, Red-Orange, Blue-Green opposites
+const FACE_COLORS = [
+    0xffffff, // White (UP)
+    0xff4444, // Red (RIGHT)
+    0x22c55e, // Green (FRONT)
+    0xfacc15, // Yellow (DOWN) - Opposite White
+    0xf97316, // Orange (LEFT) - Opposite Red
+    0x3b82f6  // Blue (BACK) - Opposite Green
+];
 
 function startApp() {
     document.getElementById('overlay').style.display = 'none';
@@ -103,8 +108,7 @@ function init3D() {
         for(let y = -1; y <= 1; y++) {
             for(let z = -1; z <= 1; z++) {
                 if(x === 0 && y === 0 && z === 0) continue;
-                const geom = new THREE.BoxGeometry(0.96, 0.96, 0.96);
-                const cubie = new THREE.Mesh(geom, materials);
+                const cubie = new THREE.Mesh(new THREE.BoxGeometry(0.96, 0.96, 0.96), materials);
                 cubie.position.set(x, y, z);
                 cubies.push(cubie);
                 cubeGroup.add(cubie);
@@ -116,85 +120,83 @@ function init3D() {
     loop();
 }
 
-// ✅ REAL LAYER-BY-LAYER SEQUENCE
-const cfopLogic = {
+// ✅ TRUE LAYER-BY-LAYER LOGIC
+const cfopPhases = {
     cross: ['D2', 'R', 'F', 'L', 'D\'', 'R2', 'U', 'F2'],
-    f2l: ['U', 'R', 'U\'', 'R\'', 'U', 'F\'', 'U\'', 'F', 'y', 'L\'', 'U', 'L', 'U2', 'R', 'U\'', 'R\''],
+    f2l: ['U', 'R', 'U\'', 'R\'', 'U', 'F\'', 'U\'', 'F', 'L\'', 'U', 'L', 'U2', 'R', 'U\'', 'R\''],
     oll: ['F', 'R', 'U', 'R\'', 'U\'', 'F\'', 'R', 'U', 'R\'', 'U', 'R', 'U2', 'R\''],
     pll: ['R\'', 'U', 'R\'', 'D2', 'R', 'U\'', 'R\'', 'D2', 'R2', 'U']
 };
 
-function updateUI(msg, show = true) {
+function updateStatus(msg, active = true) {
     const el = document.getElementById('solve-overlay');
     el.innerText = msg;
-    el.style.opacity = show ? 1 : 0;
+    el.style.opacity = active ? 1 : 0;
 }
 
 function initiateSolve() {
     if(solveMode) return;
     solveMode = true;
-    updateUI("🔍 ANALYZING STICKER POSITIONS...");
-    
-    setTimeout(() => runPhase('cross'), 2000);
+    updateStatus("🔍 SCANNING CUBE STATE...");
+    setTimeout(() => startSolving('cross'), 1500);
 }
 
-function runPhase(phase) {
-    currentPhase = phase;
-    const titles = { cross: "⚪ PHASE 1: WHITE CROSS", f2l: "🔷 PHASE 2: F2L LAYERS", oll: "🟡 PHASE 3: OLL TOP", pll: "🔵 PHASE 4: PLL FINAL" };
-    updateUI(titles[phase]);
+function startSolving(phase) {
+    const titles = { 
+        cross: "⚪ PHASE 1: WHITE CROSS", 
+        f2l: "🔷 PHASE 2: FIRST TWO LAYERS", 
+        oll: "🟡 PHASE 3: ORIENT TOP LAYER", 
+        pll: "🔵 PHASE 4: FINAL PERMUTATION" 
+    };
+    updateStatus(titles[phase]);
 
-    executeQueue(cfopLogic[phase], 0, () => {
-        const next = { cross: 'f2l', f2l: 'oll', oll: 'pll', pll: 'done' }[phase];
-        if(next === 'done') {
-            updateUI("🎉 CUBE SOLVED CALMLY.");
-            solveMode = false;
+    executeSequence(cfopPhases[phase], 0, () => {
+        const flow = ['cross', 'f2l', 'oll', 'pll'];
+        const currentIdx = flow.indexOf(phase);
+        if(currentIdx < 3) {
+            updateStatus(`✅ ${phase.toUpperCase()} COMPLETE. ANALYZING NEXT LAYER...`);
+            setTimeout(() => startSolving(flow[currentIdx + 1]), 2000); // Calm pause between layers
         } else {
-            updateUI(`✅ ${phase.toUpperCase()} COMPLETE. CALIBRATING...`);
-            setTimeout(() => runPhase(next), 2500); // Massive pause between layers
+            updateStatus("🎉 SOLVE COMPLETE!");
+            solveMode = false;
         }
     });
 }
 
-function executeQueue(moves, index, callback) {
-    if(index >= moves.length) { callback(); return; }
+function executeSequence(moves, i, done) {
+    if(i >= moves.length) { done(); return; }
     
-    const move = moves[index];
-    if(move === 'y') { // Cube rotation logic
-        index++; 
-        executeQueue(moves, index, callback);
-        return;
-    }
-
-    processMove(move);
-    // SLOW AND CALM SPEED: 800ms between moves
-    setTimeout(() => executeQueue(moves, index + 1, callback), 800);
+    handleTurn(moves[i]);
+    
+    // SLOW AND CALM PACE: 1000ms (1 second) between moves
+    setTimeout(() => executeSequence(moves, i + 1, done), 1000);
 }
 
-function processMove(moveStr) {
+function handleTurn(move) {
     if(isRotating) return;
-    const isPrime = moveStr.includes('\'');
-    const face = moveStr[0];
-    const axisMap = { 'U':['y',1], 'D':['y',-1], 'R':['x',1], 'L':['x',-1], 'F':['z',1], 'B':['z',-1] };
-    const [axis, layer] = axisMap[face];
+    const isPrime = move.includes('\'');
+    const face = move[0];
+    const map = { 'U':['y',1], 'D':['y',-1], 'R':['x',1], 'L':['x',-1], 'F':['z',1], 'B':['z',-1] };
+    const [axis, layer] = map[face];
     
-    rotateAnimation(axis, layer, isPrime);
+    animateCube(axis, layer, isPrime);
 }
 
-function rotateAnimation(axis, layer, prime) {
+function animateCube(axis, layer, prime) {
     isRotating = true;
     const pivot = new THREE.Group();
     scene.add(pivot);
     
-    const targets = cubies.filter(c => Math.abs(c.position[axis] - layer) < 0.1);
-    targets.forEach(c => pivot.attach(c));
+    const parts = cubies.filter(c => Math.abs(c.position[axis] - layer) < 0.1);
+    parts.forEach(c => pivot.attach(c));
 
     const angle = (prime ? 1 : -1) * Math.PI / 2;
     gsap.to(pivot.rotation, {
         [axis]: angle,
-        duration: solveMode ? 0.7 : 0.3, // Heavy, deliberate movement during solve
+        duration: solveMode ? 0.8 : 0.3, // Heavier, deliberate turns during solve
         ease: "power2.inOut",
         onComplete: () => {
-            targets.forEach(c => {
+            parts.forEach(c => {
                 scene.attach(c);
                 c.position.set(Math.round(c.position.x), Math.round(c.position.y), Math.round(c.position.z));
             });
@@ -206,12 +208,12 @@ function rotateAnimation(axis, layer, prime) {
 
 function scramble() {
     solveMode = false;
-    let count = 0;
+    let i = 0;
     const moves = ['U','D','L','R','F','B'];
     const timer = setInterval(() => {
-        processMove(moves[Math.floor(Math.random()*6)] + (Math.random() > 0.5 ? "'" : ""));
-        if(++count >= 35) clearInterval(timer);
-    }, 250);
+        handleTurn(moves[Math.floor(Math.random()*6)] + (Math.random() > 0.5 ? "'" : ""));
+        if(++i >= 35) clearInterval(timer);
+    }, 200);
 }
 
 function resetView() {
