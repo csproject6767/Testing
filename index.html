@@ -6,7 +6,6 @@
 <title>CubeZilla Solver</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.9.1/gsap.min.js"></script>
-<!-- Added for real solver -->
 <script src="https://unpkg.com/cubejs@0.2.1/dist/cube.min.js"></script>
 <style>
 :root {
@@ -201,9 +200,9 @@ text-transform: uppercase;
 <div id="overlay">
 <div class="page">
 <h1>CubeZilla Solver</h1>
-<p>A cinematic 3D Rubik’s cube that records every move you make and can rewind the entire scramble on command.</p>
+<p>A cinematic 3D Rubik's cube that records every move you make and can rewind the entire scramble on command.</p>
 <p style="margin-bottom: 22px;">
-Learn how a solver “thinks” through CFOP-style phases while you experiment with your own scrambles.
+Learn how a solver "thinks" through CFOP-style phases while you experiment with your own scrambles.
 </p>
 <div style="display:flex; flex-direction:column; gap:12px; margin-bottom:26px;">
 <button class="pop-btn" style="background:linear-gradient(135deg,#0f172a,#111827); box-shadow:none; border:1px solid rgba(148,163,184,0.5); color:#e5e7eb;"
@@ -259,12 +258,12 @@ let paintMode = false;
 let isRotating = false, isChangingView = false;
 let currentView = { theta: 0, phi: 0.3 };
 const zoomDistance = 12;
-// ADDED VARIABLES (Step 1)
 let cubeState = [];
 let solveMode = false, currentSolveIndex = 0;
 let currentPhase = 'cross';
 let phaseMoves = { cross: [], f2l: [], oll: [], pll: [] };
 const faceColors = [0xffffff, 0xef4444, 0x22c55e, 0xfacc15, 0xf97316, 0x3b82f6];
+
 function pickRandom(list) { return list[Math.floor(Math.random() * list.length)]; }
 function setSolveInfo(text) {
 const el = document.getElementById('solve-info');
@@ -281,8 +280,8 @@ document.getElementById('overlay').style.display = 'none';
 document.getElementById('main-app').style.display = 'grid';
 setup3D();
 }
+
 function scramble() {
-// Step 8: Scramble reset
 solveMode = false;
 initCubeState();
 let count = 0;
@@ -295,14 +294,24 @@ screenMove(move);
 count++;
 }, 260);
 }
-// Step 4: REPLACED solveCube() FUNCTION COMPLETELY
+
 function solveCube() {
   if(solveMode) return;
-  solveMode = true; currentPhase = 'cross'; currentSolveIndex = 0;
-  document.getElementById('method-title').innerText = '🔍 ANALYZING';
-  setSolveInfo('Computing optimal solution...');
-  setTimeout(() => { generateFullSolution(); startPhase('full'); }, 1500);
+  solveMode = true; 
+  setSolveInfo('Initializing solver...');
+  initCubeSolver();  // ✅ ADDED
+  setTimeout(() => { 
+    generateFullSolution(); 
+    startPhase('full'); 
+  }, 2000);  // ✅ BUMPED TO 2s
 }
+
+function initCubeSolver() {  // ✅ NEW FUNCTION
+  if (typeof Cube !== 'undefined') {
+    Cube.initSolver();  // Required precalculation (~4-5s first time)
+  }
+}
+
 function startPhase(phase) {
   currentPhase = phase; currentSolveIndex = 0;
   document.getElementById('method-title').innerText = '🧩 SOLVING (CFOP-style)';
@@ -326,6 +335,7 @@ function executeNextSolveMove() {
   screenMove(move, false);
   currentSolveIndex++;
 }
+
 function setup3D() {
 const container = document.getElementById('cube-container');
 scene = new THREE.Scene();
@@ -339,8 +349,7 @@ dl.position.set(3, 5, 4);
 scene.add(dl);
 cubeGroup = new THREE.Group();
 scene.add(cubeGroup);
-// Step 2: REPLACE THE COLORS ARRAY
-const colors = faceColors; // U,R,F,D,L,B - CORRECT COLORS
+const colors = faceColors;
 for (let x = -1; x <= 1; x++) {
 for (let y = -1; y <= 1; y++) {
 for (let z = -1; z <= 1; z++) {
@@ -350,7 +359,6 @@ const cubie = new THREE.Mesh(new THREE.BoxGeometry(0.95, 0.95, 0.95), materials)
 cubie.position.set(x, y, z);
 cubies.push(cubie);
 cubeGroup.add(cubie);
-// Step 7: initCubeState() call
 }
 }
 }
@@ -359,6 +367,7 @@ camera.position.set(zoomDistance * Math.cos(currentView.phi) * Math.sin(currentV
 camera.lookAt(0, 0, 0);
 animate();
 }
+
 function snapAndReorient(targetFace) {
 if (isRotating || isChangingView) return;
 const va = { front: { t: 0, p: 0.3 }, right: { t: -Math.PI/2, p: 0.3 }, back: { t: Math.PI, p: 0.3 }, left: { t: Math.PI/2, p: 0.3 }, up: { t: 0, p: -Math.PI/2 + 0.2 }, down: { t: 0, p: Math.PI/2 - 0.2 } };
@@ -373,7 +382,7 @@ camera.lookAt(0, 0, 0);
 onComplete: () => { isChangingView = false; }
 });
 }
-// Step 5: screenMove Logic
+
 function screenMove(move, recordHistory = true) {
 let prime = move.endsWith('_prime');
 let cleanMove = move.replace('_prime', '');
@@ -410,7 +419,7 @@ else { axisName = 'z'; layerSign = dotZ > 0 ? 1 : -1; }
 if (recordHistory && !solveMode) moveHistory.push(move);
 handleMove(axisName, layerSign, prime);
 }
-// Step 6: solveMode duration logic
+
 function handleMove(axis, layerSign, prime) {
 if (isRotating) return;
 isRotating = true;
@@ -434,33 +443,25 @@ onComplete: () => {
   });
   scene.remove(pivot);
   isRotating = false;
-
-  // === NEW: CORRECTLY UPDATE LOGICAL STATE ===
   let moveName = '';
   if (axis === 'x') moveName = layerSign > 0 ? 'R' : 'L';
   else if (axis === 'y') moveName = layerSign > 0 ? 'U' : 'D';
   else if (axis === 'z') moveName = layerSign > 0 ? 'F' : 'B';
   if (prime) moveName += "'";
-
-  applyMove(moveName);  // Now uses the correct full-cycle version below
-
+  applyMove(moveName);
   if (solveMode) {
     setTimeout(executeNextSolveMove, 400);
   }
 }
 });
 }
+
 function resetCube() { location.reload(); }
 function resetView() { snapAndReorient('front'); }
 function animate() {
 requestAnimationFrame(animate);
 renderer.render(scene, camera);
 }
-
-// === STEP 1: FULLY CORRECT CUBE STATE REPRESENTATION ===
-
-// cubeState: 54 stickers, faces: U(0-8), R(9-17), F(18-26), D(27-35), L(36-44), B(45-53)
-// Colors: 0=White(U), 1=Red(R), 2=Green(F), 3=Yellow(D), 4=Orange(L), 5=Blue(B)
 
 function initCubeState() {
   cubeState = [];
@@ -479,7 +480,7 @@ function rotateFace(start, dir) {
     rotated[3] = face[7];                       rotated[5] = face[1];
     rotated[6] = face[8]; rotated[7] = face[5]; rotated[8] = face[2];
     rotated[4] = face[4];
-  } else { // ccw
+  } else {
     rotated[0] = face[2]; rotated[1] = face[5]; rotated[2] = face[8];
     rotated[3] = face[1];                       rotated[5] = face[7];
     rotated[6] = face[0]; rotated[7] = face[3]; rotated[8] = face[6];
@@ -492,20 +493,17 @@ function rotateFace(start, dir) {
 
 function cycleEdges(move, dir) {
   const cycles = {
-    U: { cw: [19, 10, 46, 37], faces: [18,9,45,36] },     // F1 → R1 → B1 → L1
-    R: { cw: [23, 32, 48, 5],  faces: [18,27,45,0] },     // F5 → D5 → B3 → U5
-    F: { cw: [7, 12, 28, 41],  faces: [0,9,27,36] },      // U7 → R3 → D1 → L5
-    D: { cw: [25, 43, 52, 16], faces: [18,36,45,9] },     // F7 → L7 → B7 → R7
-    L: { cw: [3, 50, 30, 21],  faces: [0,45,27,18] },     // U3 → B5 → D3 → F3
-    B: { cw: [1, 39, 34, 14],  faces: [0,36,27,9] }       // U1 → L3 → D7 → R5
+    U: { cw: [19, 10, 46, 37], faces: [18,9,45,36] },
+    R: { cw: [23, 32, 48, 5],  faces: [18,27,45,0] },
+    F: { cw: [7, 12, 28, 41],  faces: [0,9,27,36] },
+    D: { cw: [25, 43, 52, 16], faces: [18,36,45,9] },
+    L: { cw: [3, 50, 30, 21],  faces: [0,45,27,18] },
+    B: { cw: [1, 39, 34, 14],  faces: [0,36,27,9] }
   };
-
   const c = cycles[move];
   if (!c) return;
-
   const pos = dir === "cw" ? c.cw : [...c.cw].reverse();
   const temp = pos.map(p => cubeState[p]);
-
   if (dir === "cw") {
     for (let i = 0; i < 4; i++) cubeState[pos[i]] = temp[(i + 3) % 4];
   } else {
@@ -517,34 +515,28 @@ function applyMove(move) {
   const isPrime = move.includes("'") || move.includes("_prime");
   const dir = isPrime ? "ccw" : "cw";
   const base = move[0];
-
   const faceStart = {U:0, R:9, F:18, D:27, L:36, B:45}[base];
   rotateFace(faceStart, dir);
   cycleEdges(base, dir);
 }
 
-// === REAL SOLVER USING CUBE.JS (Kociemba - optimal, ~20 moves) ===
-function getFaceletString() {
-  const colorMap = {0:'U', 1:'R', 2:'F', 3:'D', 4:'L', 5:'B'};
+function getFaceletString() {  // ✅ FIXED
+  const colorMap = {0:'U',1:'R',2:'F',3:'D',4:'L',5:'B'};
   let str = '';
-  [0,1,2,3,4,5].forEach(face => {
-    for (let i = 0; i < 9; i++) {
-      str += colorMap[cubeState[face*9 + i]];
-    }
-  });
+  for (let i = 0; i < 54; i++) {
+    str += colorMap[cubeState[i]];
+  }
   return str;
 }
 
 function generateFullSolution() {
   const facelets = getFaceletString();
   const cube = Cube.fromFacelets(facelets);
-  const solution = cube.solve(); // optimal solution in standard notation
+  const solution = cube.solve();
   const moves = solution.trim().split(' ').filter(m => m);
-  // Convert 2' to _prime for compatibility
   phaseMoves.full = moves.map(m => m.replace("2'", "2_prime").replace("'", "_prime"));
 }
 
-// Keep old placeholder names for compatibility (not used now)
 function generateCrossMoves() {}
 function generateF2LMoves() {}
 function generateOLLMoves() {}
