@@ -207,7 +207,6 @@ body {
   font-size: 0.8rem;
   text-transform: uppercase;
 }
-
 /* Tutorial Modal */
 #tutorial-modal {
   position: fixed;
@@ -258,6 +257,56 @@ body {
   background: linear-gradient(135deg, #ef4444, #dc2626);
   box-shadow: 0 18px 40px rgba(239,68,68,0.4);
 }
+
+/* === NEW PAINT TOOLS STYLES === */
+#color-picker .color-btn {
+  width: 42px;
+  height: 42px;
+  border-radius: 12px;
+  border: 3px solid transparent;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+}
+#color-picker .color-btn.active {
+  border: 3px solid var(--accent-soft);
+  transform: scale(1.15);
+  box-shadow: 0 0 20px rgba(165,180,252,0.6);
+}
+#color-picker .color-btn:hover {
+  transform: scale(1.1);
+}
+
+.tool-btn {
+  padding: 8px 16px;
+  background: rgba(15,23,42,0.8);
+  color: var(--text-main);
+  border: 1px solid rgba(75,85,99,0.8);
+  border-radius: 10px;
+  cursor: pointer;
+  font-size: 0.85rem;
+  font-weight: 600;
+  transition: all 0.2s;
+}
+.tool-btn.active {
+  background: var(--accent-primary);
+  color: white;
+  border-color: var(--accent-glow);
+  box-shadow: 0 0 15px rgba(99,102,241,0.5);
+}
+.tool-btn:hover:not(:disabled) {
+  background: var(--accent-glow);
+  transform: translateY(-2px);
+}
+.tool-btn.small {
+  padding: 6px 12px;
+  font-size: 0.8rem;
+}
+.tool-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+  transform: none;
+}
 </style>
 </head>
 <body>
@@ -295,11 +344,9 @@ body {
     <button class="pop-btn" onclick="solveCube()">Solve</button>
     <button class="pop-btn" onclick="resetCube()">Reset Cube</button>
     <button class="pop-btn" onclick="resetView()">Reset View</button>
-
     <button class="pop-btn" style="background:linear-gradient(135deg,#a855f7,#c084fc);" onclick="openTutorial()">
       📚 Learn to Solve
     </button>
-
     <button class="pop-btn" style="background:#374151" onclick="backToMenu()">Back to menu</button>
   </div>
   <div id="cube-container">
@@ -322,16 +369,39 @@ body {
       <button class="move-btn" onclick="screenMove('F')">F</button>
       <button class="move-btn" onclick="screenMove('F_prime')">F'</button>
     </div>
-    <div id="paint-palette" style="position:absolute; bottom:90px; right:40px; display:none; flex-direction:column; gap:10px; align-items:center;">
-      <div style="display:flex; gap:8px;">
-        <div onclick="selectPaintColor('U')" style="width:24px;height:24px;border-radius:50%;background:#ffffff;border:2px solid #e5e7eb;cursor:pointer;"></div>
-        <div onclick="selectPaintColor('D')" style="width:24px;height:24px;border-radius:50%;background:#facc15;cursor:pointer;"></div>
-        <div onclick="selectPaintColor('R')" style="width:24px;height:24px;border-radius:50%;background:#ef4444;cursor:pointer;"></div>
-        <div onclick="selectPaintColor('L')" style="width:24px;height:24px;border-radius:50%;background:#f97316;cursor:pointer;"></div>
-        <div onclick="selectPaintColor('F')" style="width:24px;height:24px;border-radius:50%;background:#22c55e;cursor:pointer;"></div>
-        <div onclick="selectPaintColor('B')" style="width:24px;height:24px;border-radius:50%;background:#3b82f6;cursor:pointer;"></div>
+
+    <!-- NEW IMPROVED PAINT PALETTE -->
+    <div id="paint-palette" style="position:absolute; bottom:90px; right:40px; display:none;">
+      <div style="background: var(--bg-glass); padding:20px 24px; border-radius:20px; border:1px solid rgba(148,163,184,0.3); backdrop-filter:blur(12px); box-shadow:0 20px 40px rgba(0,0,0,0.6);">
+        <div style="font-weight:bold; font-size:0.9rem; margin-bottom:12px; text-align:center; color:var(--accent-soft); letter-spacing:0.1em;">PAINT TOOLS</div>
+        
+        <!-- Color Picker -->
+        <div id="color-picker" style="display:flex; justify-content:center; gap:10px; margin-bottom:16px; flex-wrap:wrap;">
+          <button class="color-btn active" data-color="0xffffff" style="background:#ffffff;"></button>
+          <button class="color-btn" data-color="0xffff00" style="background:#facc15;"></button>
+          <button class="color-btn" data-color="0xff0000" style="background:#ef4444;"></button>
+          <button class="color-btn" data-color="0xffa500" style="background:#f97316;"></button>
+          <button class="color-btn" data-color="0x00ff00" style="background:#22c55e;"></button>
+          <button class="color-btn" data-color="0x0000ff" style="background:#3b82f6;"></button>
+        </div>
+        
+        <!-- Tools -->
+        <div style="display:flex; justify-content:center; gap:12px; margin-bottom:16px;">
+          <button id="tool-brush" class="tool-btn active">Brush</button>
+          <button id="tool-eraser" class="tool-btn">Eraser</button>
+        </div>
+        
+        <!-- Undo/Redo -->
+        <div style="display:flex; justify-content:center; gap:12px; margin-bottom:20px;">
+          <button id="undo-btn" class="tool-btn small" disabled>↺ Undo</button>
+          <button id="redo-btn" class="tool-btn small" disabled>↻ Redo</button>
+        </div>
+        
+        <!-- Start Solving Button -->
+        <button class="pop-btn" style="width:100%; padding:10px; font-size:0.9rem;" onclick="startSolvingPaintedCube()">
+          Start Solving
+        </button>
       </div>
-      <button class="pop-btn" style="padding:8px 18px;font-size:0.8rem;" onclick="startSolvingPaintedCube()">Start solving</button>
     </div>
   </div>
 </div>
@@ -384,6 +454,10 @@ let moveHistory = [];
 let inputCubeGroup, inputCubies = [];
 let paintMode = false;
 let currentPaintColor = 0xffffff;
+let currentPaintTool = "brush"; // "brush" or "eraser"
+let paintHistory = [];
+let historyIndex = -1;
+
 const paintColors = {
   U: 0xffffff, // white
   D: 0xffff00, // yellow
@@ -392,16 +466,25 @@ const paintColors = {
   F: 0x00ff00, // green
   B: 0x0000ff // blue
 };
+
+// Original face colors for eraser (matches THREE.js face order: +X, -X, +Y, -Y, +Z, -Z)
+const originalInputColors = {
+  0: 0xff0000, // Right (+X)
+  1: 0xffa500, // Left (-X)
+  2: 0xffffff, // Up (+Y)
+  3: 0xffff00, // Down (-Y)
+  4: 0x00ff00, // Front (+Z)
+  5: 0x0000ff  // Back (-Z)
+};
+
 let isRotating = false, isChangingView = false;
 let currentView = { theta: 0, phi: 0.3 };
 const zoomDistance = 12;
-
 // Drag-to-rotate variables
 let isDragging = false;
 let previousMouseX = 0;
 let previousMouseY = 0;
 const rotationSpeed = 0.005;
-
 // Step-by-step guide messages for paint mode
 const paintGuideSteps = [
   "Paint the full cube to begin",
@@ -414,14 +497,12 @@ const paintGuideSteps = [
   "Step 7: Orient yellow corners → Solved!"
 ];
 let currentPaintStep = 0;
-
-// NEW: Separate move history for paint mode (moves made after painting)
+// NEW: Separate move history for paint mode
 let paintMoveHistory = [];
 
 function openTutorial() {
   document.getElementById('tutorial-modal').style.display = 'flex';
 }
-
 function setSolveInfo(text) {
   const el = document.getElementById('solve-info');
   if (!el) return;
@@ -463,10 +544,9 @@ function startPaintMode() {
   paintMode = true;
   cubeGroup.visible = false;
   inputCubeGroup.visible = true;
-  document.getElementById('paint-palette').style.display = 'flex';
+  document.getElementById('paint-palette').style.display = 'block';
   currentPaintStep = 0;
   setSolveInfo(paintGuideSteps[currentPaintStep]);
-
   gsap.to(inputCubeGroup.position, {
     x: 0,
     y: 0,
@@ -474,9 +554,12 @@ function startPaintMode() {
     duration: 0.8,
     ease: "power2.out"
   });
-
-  // NEW: Clear paint-specific move history when entering paint mode
   paintMoveHistory = [];
+
+  // Initialize undo/redo history
+  paintHistory = [];
+  historyIndex = -1;
+  savePaintState(); // save initial state
 }
 function exitPaintMode() {
   paintMode = false;
@@ -485,27 +568,21 @@ function exitPaintMode() {
   document.getElementById('paint-palette').style.display = 'none';
   setSolveInfo('');
 }
-// NEW: Real solver for painted cube — rewinds moves made after painting
 function startSolvingPaintedCube() {
   if (paintMoveHistory.length === 0) {
     alert('No moves to rewind! Try making some moves after painting.');
     exitPaintMode();
     return;
   }
-
   const titleEl = document.getElementById('method-title');
   const originalTitle = titleEl.innerText;
-
-  const reverseMoves = paintMoveHistory.slice().reverse().map(m => 
+  const reverseMoves = paintMoveHistory.slice().reverse().map(m =>
     m.endsWith('_prime') ? m.replace('_prime', '') : m + '_prime'
   );
-
   titleEl.innerText = 'Solving painted cube...';
   setSolveInfo('');
-
   let idx = 0;
   const total = reverseMoves.length;
-
   const performNext = () => {
     if (idx >= total) {
       paintMoveHistory = [];
@@ -513,20 +590,37 @@ function startSolvingPaintedCube() {
       setTimeout(() => { titleEl.innerText = originalTitle; exitPaintMode(); }, 1000);
       return;
     }
-
     screenMove(reverseMoves[idx]);
     idx++;
-
     setTimeout(performNext, 180);
   };
-
   performNext();
 }
-function selectPaintColor(face) {
-  currentPaintColor = paintColors[face];
-}
+
 const raycaster = new THREE.Raycaster();
 const mouse = new THREE.Vector2();
+
+function savePaintState() {
+  const state = inputCubies.map(cubie => 
+    cubie.material.map(mat => mat.color.getHex())
+  );
+  paintHistory = paintHistory.slice(0, historyIndex + 1);
+  paintHistory.push(state);
+  historyIndex++;
+  document.getElementById("undo-btn").disabled = historyIndex <= 0;
+  document.getElementById("redo-btn").disabled = historyIndex >= paintHistory.length - 1;
+}
+
+function applyPaintState(state) {
+  state.forEach((cubieColors, i) => {
+    cubieColors.forEach((color, faceIdx) => {
+      inputCubies[i].material[faceIdx].color.setHex(color);
+    });
+  });
+  renderer.render(scene, camera);
+}
+
+// Paint mode pointer down - now with brush/eraser and undo
 function onPointerDown(event) {
   if (paintMode) {
     const rect = renderer.domElement.getBoundingClientRect();
@@ -538,48 +632,47 @@ function onPointerDown(event) {
     const hit = intersects[0];
     const mesh = hit.object;
     const faceIndex = Math.floor(hit.faceIndex / 2);
-    const mat = mesh.material[faceIndex];
-    if (!mat) return;
-    mat.color.set(currentPaintColor);
+
+    if (currentPaintTool === "eraser") {
+      mesh.material[faceIndex].color.setHex(originalInputColors[faceIndex]);
+    } else {
+      mesh.material[faceIndex].color.setHex(currentPaintColor);
+    }
+
+    savePaintState();
 
     currentPaintStep = Math.min(currentPaintStep + 1, paintGuideSteps.length - 1);
     setSolveInfo(paintGuideSteps[currentPaintStep]);
-
     return;
   }
-
   isDragging = true;
   previousMouseX = event.clientX || event.touches[0].clientX;
   previousMouseY = event.clientY || event.touches[0].clientY;
 }
+
 function onPointerMove(event) {
   if (!isDragging || isRotating || isChangingView) return;
-
   const clientX = event.clientX || (event.touches && event.touches[0].clientX);
   const clientY = event.clientY || (event.touches && event.touches[0].clientY);
   if (clientX === undefined) return;
-
   const deltaX = clientX - previousMouseX;
   const deltaY = clientY - previousMouseY;
-
   currentView.theta -= deltaX * rotationSpeed;
   currentView.phi -= deltaY * rotationSpeed;
-
   currentView.phi = Math.max(0.1, Math.min(Math.PI - 0.1, currentView.phi));
-
   camera.position.set(
     zoomDistance * Math.cos(currentView.phi) * Math.sin(currentView.theta),
     zoomDistance * Math.sin(currentView.phi),
     zoomDistance * Math.cos(currentView.phi) * Math.cos(currentView.theta)
   );
   camera.lookAt(0, 0, 0);
-
   previousMouseX = clientX;
   previousMouseY = clientY;
 }
 function onPointerUp() {
   isDragging = false;
 }
+
 function setup3D() {
   const container = document.getElementById('cube-container');
   scene = new THREE.Scene();
@@ -633,16 +726,15 @@ function setup3D() {
     zoomDistance * Math.cos(currentView.phi) * Math.cos(currentView.theta)
   );
   camera.lookAt(0, 0, 0);
-
   renderer.domElement.addEventListener('pointerdown', onPointerDown);
   renderer.domElement.addEventListener('pointermove', onPointerMove);
   renderer.domElement.addEventListener('pointerup', onPointerUp);
   renderer.domElement.addEventListener('pointercancel', onPointerUp);
   renderer.domElement.addEventListener('touchstart', onPointerDown, { passive: false });
   renderer.domElement.addEventListener('touchmove', onPointerMove, { passive: false });
-
   animate();
 }
+
 function snapAndReorient(targetFace) {
   if (isRotating || isChangingView) return;
   const va = {
@@ -668,6 +760,7 @@ function snapAndReorient(targetFace) {
     onComplete: () => { isChangingView = false; }
   });
 }
+
 function screenMove(move) {
   let prime = move.endsWith('_prime');
   let cleanMove = move.replace('_prime', '');
@@ -712,21 +805,18 @@ function screenMove(move) {
     axisName = 'z';
     layerSign = dotZ > 0 ? 1 : -1;
   }
-
-  // NEW: Record moves in paint mode separately
   if (paintMode) {
     paintMoveHistory.push(move);
   } else {
     moveHistory.push(move);
   }
-
   handleMove(axisName, layerSign, prime);
 }
+
 function handleMove(axis, layerSign, prime) {
   if (isRotating) return;
   isRotating = true;
   const pivot = new THREE.Group();
-  // Use the correct group: inputCubeGroup in paint mode, cubeGroup otherwise
   const activeGroup = paintMode ? inputCubeGroup : cubeGroup;
   const activeCubies = paintMode ? inputCubies : cubies;
   activeGroup.add(pivot);
@@ -738,7 +828,6 @@ function handleMove(axis, layerSign, prime) {
     }
   });
   const angle = (prime ? 1 : -1) * Math.PI / 2;
-
   gsap.to(pivot.rotation, {
     [axis]: '+=' + angle,
     duration: 0.18,
@@ -753,6 +842,7 @@ function handleMove(axis, layerSign, prime) {
     }
   });
 }
+
 function scramble() {
   let count = 0;
   const moves = ['R','R_prime','L','L_prime','U','U_prime','F','F_prime'];
@@ -763,22 +853,18 @@ function scramble() {
     count++;
   }, 260);
 }
+
 function solveCube() {
   if (moveHistory.length === 0) return;
-
   const titleEl = document.getElementById('method-title');
   const originalTitle = titleEl.innerText;
-
-  const reverseMoves = moveHistory.slice().reverse().map(m => 
+  const reverseMoves = moveHistory.slice().reverse().map(m =>
     m.endsWith('_prime') ? m.replace('_prime', '') : m + '_prime'
   );
-
   titleEl.innerText = 'Solving...';
   setSolveInfo('');
-
   let idx = 0;
   const total = reverseMoves.length;
-
   const performNext = () => {
     if (idx >= total) {
       moveHistory = [];
@@ -786,21 +872,57 @@ function solveCube() {
       setTimeout(() => { titleEl.innerText = originalTitle; }, 1000);
       return;
     }
-
     screenMove(reverseMoves[idx]);
     idx++;
-
     setTimeout(performNext, 180);
   };
-
   performNext();
 }
+
 function resetCube() { location.reload(); }
 function resetView() { snapAndReorient('front'); }
 function animate() {
   requestAnimationFrame(animate);
   renderer.render(scene, camera);
 }
+
+// === PAINT TOOLS EVENT LISTENERS (added at the end) ===
+document.querySelectorAll(".color-btn").forEach(btn => {
+  btn.addEventListener("click", () => {
+    document.querySelectorAll(".color-btn").forEach(b => b.classList.remove("active"));
+    btn.classList.add("active");
+    currentPaintColor = parseInt(btn.dataset.color, 16);
+    currentPaintTool = "brush";
+    document.getElementById("tool-brush").classList.add("active");
+    document.getElementById("tool-eraser").classList.remove("active");
+  });
+});
+
+document.getElementById("tool-brush").addEventListener("click", () => {
+  currentPaintTool = "brush";
+  document.getElementById("tool-brush").classList.add("active");
+  document.getElementById("tool-eraser").classList.remove("active");
+});
+
+document.getElementById("tool-eraser").addEventListener("click", () => {
+  currentPaintTool = "eraser";
+  document.getElementById("tool-eraser").classList.add("active");
+  document.getElementById("tool-brush").classList.remove("active");
+});
+
+document.getElementById("undo-btn").addEventListener("click", () => {
+  if (historyIndex > 0) {
+    historyIndex--;
+    applyPaintState(paintHistory[historyIndex]);
+  }
+});
+
+document.getElementById("redo-btn").addEventListener("click", () => {
+  if (historyIndex < paintHistory.length - 1) {
+    historyIndex++;
+    applyPaintState(paintHistory[historyIndex]);
+  }
+});
 </script>
 </body>
 </html>
