@@ -257,7 +257,7 @@ body {
   background: linear-gradient(135deg, #ef4444, #dc2626);
   box-shadow: 0 18px 40px rgba(239,68,68,0.4);
 }
-/* === PAINT TOOLS STYLES === */
+/* === NEW PAINT TOOLS STYLES === */
 #color-picker .color-btn {
   width: 42px;
   height: 42px;
@@ -304,33 +304,6 @@ body {
   opacity: 0.4;
   cursor: not-allowed;
   transform: none;
-}
-
-/* NEW: Minimizable palette */
-#paint-palette-header {
-  cursor: pointer;
-  user-select: none;
-  padding: 12px 24px;
-  background: rgba(15,23,42,0.95);
-  border-bottom: 1px solid rgba(148,163,184,0.2);
-  font-weight: bold;
-  font-size: 0.9rem;
-  color: var(--accent-soft);
-  letter-spacing: 0.1em;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-#paint-palette-content {
-  transition: max-height 0.4s ease, opacity 0.3s ease;
-  max-height: 800px;
-  opacity: 1;
-  overflow: hidden;
-}
-#paint-palette-content.collapsed {
-  max-height: 0;
-  opacity: 0;
-  padding: 0 24px;
 }
 </style>
 </head>
@@ -394,42 +367,48 @@ body {
       <button class="move-btn" onclick="screenMove('F')">F</button>
       <button class="move-btn" onclick="screenMove('F_prime')">F'</button>
     </div>
-    <!-- MINIMIZABLE PAINT PALETTE -->
+    <!-- NEW IMPROVED PAINT PALETTE -->
     <div id="paint-palette" style="position:absolute; bottom:90px; right:40px; display:none;">
-      <div style="background: var(--bg-glass); border-radius:20px; border:1px solid rgba(148,163,184,0.3); backdrop-filter:blur(12px); box-shadow:0 20px 40px rgba(0,0,0,0.6); overflow:hidden;">
-        <div id="paint-palette-header" onclick="togglePalette()">
-          PAINT TOOLS <span id="palette-toggle">−</span>
+      <div style="background: var(--bg-glass); padding:20px 24px; border-radius:20px; border:1px solid rgba(148,163,184,0.3); backdrop-filter:blur(12px); box-shadow:0 20px 40px rgba(0,0,0,0.6);">
+        <div style="font-weight:bold; font-size:0.9rem; margin-bottom:12px; text-align:center; color:var(--accent-soft); letter-spacing:0.1em;">PAINT TOOLS</div>
+       
+        <!-- Color Picker -->
+        <div id="color-picker" style="display:flex; justify-content:center; gap:10px; margin-bottom:16px; flex-wrap:wrap;">
+          <button class="color-btn active" data-color="0xffffff" style="background:#ffffff;"></button>
+          <button class="color-btn" data-color="0xffff00" style="background:#facc15;"></button>
+          <button class="color-btn" data-color="0xff0000" style="background:#ef4444;"></button>
+          <button class="color-btn" data-color="0xffa500" style="background:#f97316;"></button>
+          <button class="color-btn" data-color="0x00ff00" style="background:#22c55e;"></button>
+          <button class="color-btn" data-color="0x0000ff" style="background:#3b82f6;"></button>
         </div>
-        <div id="paint-palette-content">
-          <div style="padding:20px 24px;">
-            <!-- Color Picker -->
-            <div id="color-picker" style="display:flex; justify-content:center; gap:10px; margin-bottom:16px; flex-wrap:wrap;">
-              <button class="color-btn active" data-color="0xffffff" style="background:#ffffff;"></button>
-              <button class="color-btn" data-color="0xffff00" style="background:#facc15;"></button>
-              <button class="color-btn" data-color="0xff0000" style="background:#ef4444;"></button>
-              <button class="color-btn" data-color="0xffa500" style="background:#f97316;"></button>
-              <button class="color-btn" data-color="0x00ff00" style="background:#22c55e;"></button>
-              <button class="color-btn" data-color="0x0000ff" style="background:#3b82f6;"></button>
-            </div>
-           
-            <!-- Tools -->
-            <div style="display:flex; justify-content:center; gap:12px; margin-bottom:16px;">
-              <button id="tool-brush" class="tool-btn active">Brush</button>
-              <button id="tool-eraser" class="tool-btn">Eraser</button>
-            </div>
-           
-            <!-- Undo/Redo -->
-            <div style="display:flex; justify-content:center; gap:12px; margin-bottom:20px;">
-              <button id="undo-btn" class="tool-btn small" disabled>↺ Undo</button>
-              <button id="redo-btn" class="tool-btn small" disabled>↻ Redo</button>
-            </div>
-           
-            <!-- Start Solving Button -->
-            <button class="pop-btn" style="width:100%; padding:10px; font-size:0.9rem;" onclick="startSolvingPaintedCube()">
-              Start Solving
-            </button>
+       
+        <!-- Tools -->
+        <div style="display:flex; justify-content:center; gap:12px; margin-bottom:16px;">
+          <button id="tool-brush" class="tool-btn active">Brush</button>
+          <button id="tool-eraser" class="tool-btn">Eraser</button>
+        </div>
+       
+        <!-- Undo/Redo -->
+        <div style="display:flex; justify-content:center; gap:12px; margin-bottom:20px;">
+          <button id="undo-btn" class="tool-btn small" disabled>↺ Undo</button>
+          <button id="redo-btn" class="tool-btn small" disabled>↻ Redo</button>
+        </div>
+
+        <!-- NEW: Progress Feedback -->
+        <div style="margin: 20px 0 16px; text-align:center;">
+          <div style="font-weight:bold; font-size:0.95rem; color:var(--accent-soft); letter-spacing:0.08em;">
+            PROGRESS: <span id="step-num">0/7</span>
+          </div>
+          <div id="step-status" style="margin-top:8px; font-size:0.85rem; color:var(--text-muted); min-height:1.2em;"></div>
+          <div style="margin-top:10px;">
+            <span id="checkmark" style="font-size:1.8rem; opacity:0; transition:opacity 0.4s ease;">✅</span>
           </div>
         </div>
+       
+        <!-- Start Solving Button -->
+        <button class="pop-btn" style="width:100%; padding:10px; font-size:0.9rem;" onclick="startSolvingPaintedCube()">
+          Start Solving
+        </button>
       </div>
     </div>
   </div>
@@ -560,15 +539,6 @@ function startSolver() {
   document.getElementById('main-app').style.display = 'grid';
   setup3D();
 }
-
-// NEW: Toggle palette minimize
-function togglePalette() {
-  const content = document.getElementById('paint-palette-content');
-  const toggle = document.getElementById('palette-toggle');
-  content.classList.toggle('collapsed');
-  toggle.textContent = content.classList.contains('collapsed') ? '+' : '−';
-}
-
 function startPaintMode() {
   if (!scene) {
     startSolver();
@@ -591,6 +561,7 @@ function startPaintMode() {
   paintHistory = [];
   historyIndex = -1;
   savePaintState(); // save initial state
+  checkProgress(); // initial check
 }
 function exitPaintMode() {
   paintMode = false;
@@ -630,19 +601,71 @@ function startSolvingPaintedCube() {
 const raycaster = new THREE.Raycaster();
 const mouse = new THREE.Vector2();
 
-// NEW: For smooth drag-to-paint
-let lastPaintedKey = null;
+// NEW: Progress detection function
+function checkProgress() {
+  if (!paintMode) return;
 
-function paintSticker(mesh, faceIndex) {
-  const key = mesh.uuid + '-' + faceIndex;
-  if (key === lastPaintedKey) return;
-  lastPaintedKey = key;
+  // Face order: 0:R, 1:L, 2:U, 3:D, 4:F, 5:B
+  const faceCounts = Array(6).fill().map(() => ({}));
+  let totalCounts = {};
+  const gray = 0x374151;
 
-  if (currentPaintTool === "eraser") {
-    mesh.material[faceIndex].color.setHex(originalInputColors[faceIndex]);
+  inputCubies.forEach(cubie => {
+    cubie.material.forEach((mat, i) => {
+      const hex = mat.color.getHex();
+      faceCounts[i][hex] = (faceCounts[i][hex] || 0) + 1;
+      totalCounts[hex] = (totalCounts[hex] || 0) + 1;
+    });
+  });
+
+  const colors = [0xff0000, 0xffa500, 0xffffff, 0xffff00, 0x00ff00, 0x0000ff];
+  const isValid = colors.every(c => totalCounts[c] === 9) && !totalCounts[gray];
+
+  let detectedStep = 0;
+
+  // 0 → 1: Fully painted
+  if (!totalCounts[gray]) detectedStep = 1;
+
+  // 1 → 2: White cross on bottom (D face full white + 1 white on each side)
+  if (detectedStep >= 1 && faceCounts[3][0xffffff] === 9 &&
+      [0,1,4,5].every(i => faceCounts[i][0xffffff] === 1)) detectedStep = 2;
+
+  // 2 → 3: Full white face (no white on sides)
+  if (detectedStep >= 2 && [0,1,4,5].every(i => !faceCounts[i][0xffffff])) detectedStep = 3;
+
+  // 3 → 4: Middle layer clean
+  if (detectedStep >= 3 &&
+      [0,1,4,5].every(i => !faceCounts[i][0xffffff] && !faceCounts[i][0xffff00])) detectedStep = 4;
+
+  // 4 → 5: Yellow cross
+  if (detectedStep >= 4 && (faceCounts[2][0xffff00] || 0) >= 5) detectedStep = 5;
+
+  // 5 → 6: Full yellow face
+  if (detectedStep >= 5 && faceCounts[2][0xffff00] === 9) detectedStep = 6;
+
+  // 6+ → 7+: Roughly solved
+  const target = [0xff0000, 0xffa500, 0xffffff, 0xffff00, 0x00ff00, 0x0000ff];
+  const allSolid = [0,1,2,3,4,5].every(i => faceCounts[i][target[i]] === 9);
+  if (allSolid) detectedStep = 8;
+
+  // Update UI
+  document.getElementById('step-num').textContent = `${Math.min(detectedStep, 7)}/7`;
+  const statusEl = document.getElementById('step-status');
+  const checkEl = document.getElementById('checkmark');
+
+  if (detectedStep > currentPaintStep) {
+    statusEl.textContent = "Great job! Step complete!";
+    checkEl.style.opacity = 1;
+    setTimeout(() => checkEl.style.opacity = 0, 2000);
+    currentPaintStep = detectedStep;
+    setSolveInfo(paintGuideSteps[Math.min(currentPaintStep, 7)]);
   } else {
-    mesh.material[faceIndex].color.setHex(currentPaintColor);
+    statusEl.textContent = paintGuideSteps[Math.min(currentPaintStep, 7)];
   }
+
+  // Disable solve button if invalid
+  const solveBtn = document.querySelector('#paint-palette .pop-btn:last-of-type');
+  if (solveBtn) solveBtn.disabled = !isValid;
 }
 
 function savePaintState() {
@@ -654,6 +677,7 @@ function savePaintState() {
   historyIndex++;
   document.getElementById("undo-btn").disabled = historyIndex <= 0;
   document.getElementById("redo-btn").disabled = historyIndex >= paintHistory.length - 1;
+  checkProgress();
 }
 function applyPaintState(state) {
   state.forEach((cubieColors, i) => {
@@ -662,21 +686,27 @@ function applyPaintState(state) {
     });
   });
   renderer.render(scene, camera);
+  checkProgress();
 }
+// Paint mode pointer down
 function onPointerDown(event) {
-  lastPaintedKey = null; // new stroke
   if (paintMode) {
     const rect = renderer.domElement.getBoundingClientRect();
     mouse.x = ((event.clientX || event.touches[0].clientX) - rect.left) / rect.width * 2 - 1;
     mouse.y = -((event.clientY || event.touches[0].clientY) - rect.top) / rect.height * 2 + 1;
     raycaster.setFromCamera(mouse, camera);
     const intersects = raycaster.intersectObjects(inputCubies, false);
-    if (intersects.length > 0) {
-      const hit = intersects[0];
-      const faceIndex = Math.floor(hit.faceIndex / 2);
-      paintSticker(hit.object, faceIndex);
+    if (intersects.length === 0) return;
+    const hit = intersects[0];
+    const mesh = hit.object;
+    const faceIndex = Math.floor(hit.faceIndex / 2);
+    if (currentPaintTool === "eraser") {
+      mesh.material[faceIndex].color.setHex(originalInputColors[faceIndex]);
+    } else {
+      mesh.material[faceIndex].color.setHex(currentPaintColor);
     }
-    isDragging = true;
+    savePaintState();
+    currentPaintStep = Math.min(currentPaintStep + 1, paintGuideSteps.length - 1);
     return;
   }
   isDragging = true;
@@ -685,19 +715,6 @@ function onPointerDown(event) {
 }
 function onPointerMove(event) {
   if (!isDragging || isRotating || isChangingView) return;
-  if (paintMode) {
-    const rect = renderer.domElement.getBoundingClientRect();
-    mouse.x = ((event.clientX || event.touches[0].clientX) - rect.left) / rect.width * 2 - 1;
-    mouse.y = -((event.clientY || event.touches[0].clientY) - rect.top) / rect.height * 2 + 1;
-    raycaster.setFromCamera(mouse, camera);
-    const intersects = raycaster.intersectObjects(inputCubies, false);
-    if (intersects.length > 0) {
-      const hit = intersects[0];
-      const faceIndex = Math.floor(hit.faceIndex / 2);
-      paintSticker(hit.object, faceIndex);
-    }
-    return;
-  }
   const clientX = event.clientX || (event.touches && event.touches[0].clientX);
   const clientY = event.clientY || (event.touches && event.touches[0].clientY);
   if (clientX === undefined) return;
@@ -716,11 +733,7 @@ function onPointerMove(event) {
   previousMouseY = clientY;
 }
 function onPointerUp() {
-  if (paintMode && isDragging) {
-    savePaintState(); // save once at end of stroke
-  }
   isDragging = false;
-  lastPaintedKey = null;
 }
 function setup3D() {
   const container = document.getElementById('cube-container');
@@ -928,7 +941,7 @@ function animate() {
   requestAnimationFrame(animate);
   renderer.render(scene, camera);
 }
-// === PAINT TOOLS EVENT LISTENERS (added at the end) ===
+// === PAINT TOOLS EVENT LISTENERS ===
 document.querySelectorAll(".color-btn").forEach(btn => {
   btn.addEventListener("click", () => {
     document.querySelectorAll(".color-btn").forEach(b => b.classList.remove("active"));
