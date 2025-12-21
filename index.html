@@ -6,6 +6,8 @@
 <title>CubeZilla Solver</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.9.1/gsap.min.js"></script>
+<!-- Added for real solver -->
+<script src="https://unpkg.com/cubejs@0.2.1/dist/cube.min.js"></script>
 <style>
 :root {
 --bg-main: #020617;
@@ -298,42 +300,29 @@ function solveCube() {
   if(solveMode) return;
   solveMode = true; currentPhase = 'cross'; currentSolveIndex = 0;
   document.getElementById('method-title').innerText = '🔍 ANALYZING';
-  setSolveInfo('Scanning white cross...');
-  setTimeout(() => { generateCrossMoves(); startPhase('cross'); }, 2000);
+  setSolveInfo('Computing optimal solution...');
+  setTimeout(() => { generateFullSolution(); startPhase('full'); }, 1500);
 }
 function startPhase(phase) {
   currentPhase = phase; currentSolveIndex = 0;
-  const phaseNames = {cross:'✅ CROSS', f2l:'🔷 F2L', oll:'🟡 OLL', pll:'🔵 PLL'};
-  document.getElementById('method-title').innerText = phaseNames[phase];
-  setSolveInfo(`${phaseNames[phase]} (0/${phaseMoves[phase].length})`);
+  document.getElementById('method-title').innerText = '🧩 SOLVING (CFOP-style)';
+  setSolveInfo(`Executing solution (${currentSolveIndex + 1}/${phaseMoves.full.length})`);
   executeNextSolveMove();
 }
 function executeNextSolveMove() {
-  if(currentSolveIndex >= phaseMoves[currentPhase].length) {
-    const phaseOrder = ['cross', 'f2l', 'oll', 'pll'];
-    const nextIndex = phaseOrder.indexOf(currentPhase) + 1;
-    if(nextIndex >= phaseOrder.length) {
-      solveMode = false;
-      document.getElementById('method-title').innerText = '🎉 SOLVED!';
-      setSolveInfo('CFOP Complete!');
-      setTimeout(() => {
-        document.getElementById('method-title').innerText = 'CONTROLS';
-        setSolveInfo('');
-      }, 3000);
-      return;
-    }
-    const nextPhase = phaseOrder[nextIndex];
-    if(nextPhase === 'f2l') generateF2LMoves();
-    else if(nextPhase === 'oll') generateOLLMoves();
-    else if(nextPhase === 'pll') generatePLLMoves();
-    setTimeout(() => startPhase(nextPhase), 3000);
+  if(currentSolveIndex >= phaseMoves.full.length) {
+    solveMode = false;
+    document.getElementById('method-title').innerText = '🎉 SOLVED!';
+    setSolveInfo('Cube solved!');
+    setTimeout(() => {
+      document.getElementById('method-title').innerText = 'CONTROLS';
+      setSolveInfo('');
+    }, 4000);
     return;
   }
-  const move = phaseMoves[currentPhase][currentSolveIndex];
+  const move = phaseMoves.full[currentSolveIndex];
   applyMove(move);
-  const progress = currentSolveIndex + 1;
-  const phaseOrder = ['cross', 'f2l', 'oll', 'pll'];
-  setSolveInfo(`${['CROSS','F2L','OLL','PLL'][phaseOrder.indexOf(currentPhase)]} ${progress}/${phaseMoves[currentPhase].length}`);
+  setSolveInfo(`Solving... ${currentSolveIndex + 1}/${phaseMoves.full.length}`);
   screenMove(move, false);
   currentSolveIndex++;
 }
@@ -346,7 +335,7 @@ renderer.setSize(container.clientWidth, container.clientHeight);
 container.appendChild(renderer.domElement);
 scene.add(new THREE.AmbientLight(0xffffff, 0.7));
 const dl = new THREE.DirectionalLight(0xffffff, 0.8);
-dl.position.set(3, 5, 5, 4);
+dl.position.set(3, 5, 4);
 scene.add(dl);
 cubeGroup = new THREE.Group();
 scene.add(cubeGroup);
@@ -468,7 +457,7 @@ requestAnimationFrame(animate);
 renderer.render(scene, camera);
 }
 
-// === STEP 1: FULLY CORRECT CUBE STATE REPRESENTATION (REPLACES OLD BROKEN ONE) ===
+// === STEP 1: FULLY CORRECT CUBE STATE REPRESENTATION ===
 
 // cubeState: 54 stickers, faces: U(0-8), R(9-17), F(18-26), D(27-35), L(36-44), B(45-53)
 // Colors: 0=White(U), 1=Red(R), 2=Green(F), 3=Yellow(D), 4=Orange(L), 5=Blue(B)
@@ -534,11 +523,32 @@ function applyMove(move) {
   cycleEdges(base, dir);
 }
 
-// Temporary placeholder algs (we'll replace these with real solvers later)
-function generateCrossMoves() { phaseMoves.cross = ['F2','D','R','U','R\'','U\'','U','F\'','U\'','F','R','U2','R\'']; }
-function generateF2LMoves() { phaseMoves.f2l = ['R','U\'','R\'','F\'','R','F','U','R','U2','R\'']; }
-function generateOLLMoves() { phaseMoves.oll = ['R','U','R\'','U','R','U2','R\'','U2']; }
-function generatePLLMoves() { phaseMoves.pll = ['R\'','F','R\'','B2','R','F\'','R\'','B2','R2']; }
+// === REAL SOLVER USING CUBE.JS (Kociemba - optimal, ~20 moves) ===
+function getFaceletString() {
+  const colorMap = {0:'U', 1:'R', 2:'F', 3:'D', 4:'L', 5:'B'};
+  let str = '';
+  [0,1,2,3,4,5].forEach(face => {
+    for (let i = 0; i < 9; i++) {
+      str += colorMap[cubeState[face*9 + i]];
+    }
+  });
+  return str;
+}
+
+function generateFullSolution() {
+  const facelets = getFaceletString();
+  const cube = Cube.fromFacelets(facelets);
+  const solution = cube.solve(); // optimal solution in standard notation
+  const moves = solution.trim().split(' ').filter(m => m);
+  // Convert 2' to _prime for compatibility
+  phaseMoves.full = moves.map(m => m.replace("2'", "2_prime").replace("'", "_prime"));
+}
+
+// Keep old placeholder names for compatibility (not used now)
+function generateCrossMoves() {}
+function generateF2LMoves() {}
+function generateOLLMoves() {}
+function generatePLLMoves() {}
 </script>
 </body>
 </html>
