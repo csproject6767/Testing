@@ -1,229 +1,485 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CubeZilla v4.0 | Pro Layer Solver</title>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.9.1/gsap.min.js"></script>
-    <style>
-        :root { --bg: #020617; --panel: #0b1120; --accent: #6366f1; --text: #f8fafc; }
-        body { margin: 0; background: var(--bg); color: var(--text); font-family: 'Segoe UI', sans-serif; overflow: hidden; height: 100vh; }
-        
-        #main-app { display: none; grid-template-columns: 300px 1fr; height: 100vh; }
-        #sidebar { background: var(--panel); padding: 30px; display: flex; flex-direction: column; border-right: 1px solid #1e293b; box-shadow: 10px 0 30px rgba(0,0,0,0.5); z-index: 10; }
-        
-        h1 { font-size: 1.5rem; margin-bottom: 5px; color: var(--accent); }
-        .status-tag { font-size: 0.7rem; font-weight: bold; letter-spacing: 2px; text-transform: uppercase; color: #64748b; margin-bottom: 20px; }
-        
-        button { 
-            background: #1e293b; border: 1px solid #334155; color: white; padding: 14px; 
-            border-radius: 10px; cursor: pointer; font-weight: 600; margin-bottom: 10px; transition: 0.3s;
-        }
-        button:hover { background: var(--accent); transform: translateY(-2px); }
-        button.primary { background: var(--accent); border: none; margin-top: 10px; }
-
-        #cube-viewport { position: relative; flex: 1; }
-        #solve-overlay { 
-            position: absolute; top: 40px; left: 50%; transform: translateX(-50%);
-            background: rgba(15, 23, 42, 0.9); border: 1px solid var(--accent);
-            padding: 15px 40px; border-radius: 50px; font-weight: bold; text-align: center;
-            opacity: 0; pointer-events: none; transition: 0.5s; box-shadow: 0 0 20px rgba(99, 102, 241, 0.4);
-        }
-
-        #overlay { position: fixed; inset: 0; z-index: 100; background: var(--bg); display: flex; align-items: center; justify-content: center; }
-        .welcome-card { text-align: center; padding: 50px; background: var(--panel); border-radius: 30px; border: 1px solid #1e293b; max-width: 400px; }
-    </style>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>CubeZilla Solver</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.9.1/gsap.min.js"></script>
+<style>
+:root {
+--bg-main: #020617;
+--bg-panel: #0b1120;
+--bg-glass: rgba(15, 23, 42, 0.92);
+--accent-primary: #6366f1;
+--accent-glow: #8b5cf6;
+--accent-soft: #a5b4fc;
+--text-main: #e5e7eb;
+--text-muted: #9ca3af;
+--border-glow: rgba(99, 102, 241, 0.4);
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+width: 100%;
+height: 100vh;
+background:
+radial-gradient(ellipse at top left, rgba(99,102,241,0.18) 0%, transparent 55%),
+radial-gradient(ellipse at bottom right, rgba(139,92,246,0.16) 0%, transparent 55%),
+linear-gradient(135deg, #020617 0%, #020617 100%);
+font-family: -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+color: var(--text-main);
+overflow: hidden;
+}
+#overlay {
+position: fixed;
+inset: 0;
+display: flex;
+justify-content: center;
+align-items: center;
+z-index: 100;
+background: radial-gradient(circle at 10% 10%, rgba(79,70,229,0.35) 0%, transparent 45%),
+radial-gradient(circle at 90% 90%, rgba(147,51,234,0.3) 0%, transparent 45%),
+rgba(2,6,23,0.96);
+}
+.page {
+text-align: left;
+padding: 40px 44px 32px;
+max-width: 480px;
+width: 90vw;
+background:
+linear-gradient(145deg, rgba(15,23,42,0.96) 0%, rgba(15,23,42,0.92) 100%);
+border-radius: 26px;
+border: 1px solid rgba(148,163,184,0.4);
+box-shadow:
+0 30px 80px rgba(15,23,42,0.9),
+0 0 40px rgba(79,70,229,0.4);
+position: relative;
+overflow: hidden;
+}
+.page::before {
+content: '';
+position: absolute;
+inset: -1px;
+border-radius: 26px;
+background: radial-gradient(circle at 0% 0%, rgba(129,140,248,0.4) 0%, transparent 45%),
+radial-gradient(circle at 100% 100%, rgba(236,72,153,0.3) 0%, transparent 45%);
+opacity: 0.45;
+mix-blend-mode: screen;
+pointer-events: none;
+}
+.page h1 {
+font-size: 2.1rem;
+margin-bottom: 12px;
+letter-spacing: -0.03em;
+background: linear-gradient(135deg, #e5e7eb, #a5b4fc);
+-webkit-background-clip: text;
+-webkit-text-fill-color: transparent;
+}
+.page p {
+margin-bottom: 18px;
+color: var(--text-muted);
+line-height: 1.6;
+font-size: 0.95rem;
+}
+.pop-btn, button {
+padding: 12px 26px;
+background: linear-gradient(135deg, var(--accent-primary), var(--accent-glow));
+color: white;
+border: none;
+border-radius: 999px;
+cursor: pointer;
+font-weight: 600;
+font-size: 0.95rem;
+letter-spacing: 0.05em;
+text-transform: uppercase;
+position: relative;
+overflow: hidden;
+transition: transform 0.2s ease, box-shadow 0.2s ease;
+box-shadow:
+0 18px 40px rgba(59,130,246,0.45),
+0 0 0 1px rgba(129,140,248,0.6);
+}
+.pop-btn:hover, button:hover {
+transform: translateY(-2px) scale(1.02);
+box-shadow:
+0 24px 55px rgba(79,70,229,0.6),
+0 0 0 1px rgba(191,219,254,0.9);
+}
+#main-app {
+display: none;
+height: 100vh;
+grid-template-columns: 300px 1fr;
+}
+#sidebar {
+background: linear-gradient(180deg, #020617 0%, #020617 60%, #020617 100%);
+border-right: 1px solid rgba(15,23,42,1);
+padding: 22px 20px;
+display: flex;
+flex-direction: column;
+gap: 16px;
+box-shadow: 10px 0 40px rgba(0,0,0,0.6);
+}
+#method-title {
+font-size: 0.9rem;
+color: var(--accent-soft);
+letter-spacing: 0.16em;
+text-transform: uppercase;
+margin-bottom: 8px;
+}
+#sidebar .pop-btn {
+width: 100%;
+justify-content: center;
+}
+#cube-container {
+position: relative;
+flex: 1;
+}
+#solve-info {
+position: absolute;
+top: 20px;
+left: 50%;
+transform: translateX(-50%);
+padding: 8px 18px;
+background: rgba(15,23,42,0.95);
+border-radius: 999px;
+border: 1px solid rgba(148,163,184,0.6);
+color: var(--text-muted);
+font-size: 0.8rem;
+letter-spacing: 0.08em;
+text-transform: uppercase;
+opacity: 0;
+transition: opacity 0.3s ease;
+z-index: 10;
+}
+.camera-column {
+position: absolute;
+top: 50%;
+left: 24px;
+transform: translateY(-50%);
+display: flex;
+flex-direction: column;
+gap: 12px;
+}
+.camera-btn {
+width: 46px;
+height: 46px;
+background: radial-gradient(circle at 30% 0%, #111827, #020617);
+color: #e5e7eb;
+border-radius: 14px;
+border: 1px solid rgba(75,85,99,0.9);
+cursor: pointer;
+font-weight: 600;
+}
+.move-bar {
+position: absolute;
+bottom: 34px;
+left: 50%;
+transform: translateX(-50%);
+display: flex;
+gap: 10px;
+padding: 14px 16px;
+background: rgba(15,23,42,0.98);
+border-radius: 18px;
+border: 1px solid rgba(51,65,85,0.9);
+}
+.move-btn {
+padding: 8px 10px;
+min-width: 40px;
+background: #0f172a;
+color: #e5e7eb;
+border-radius: 10px;
+border: 1px solid rgba(55,65,81,0.9);
+cursor: pointer;
+font-size: 0.8rem;
+text-transform: uppercase;
+}
+</style>
 </head>
 <body>
-
 <div id="overlay">
-    <div class="welcome-card">
-        <h1>CubeZilla v4.0</h1>
-        <div class="status-tag">Real-Time CFOP Engine</div>
-        <p style="color: #94a3b8; margin-bottom: 30px;">True Layer-by-Layer Logic<br>Standard Professional Colors</p>
-        <button class="primary" style="width: 100%;" onclick="startApp()">INITIALIZE ENGINE</button>
-    </div>
+<div class="page">
+<h1>CubeZilla Solver</h1>
+<p>A cinematic 3D Rubik’s cube that records every move you make and can rewind the entire scramble on command.</p>
+<p style="margin-bottom: 22px;">
+Learn how a solver “thinks” through CFOP-style phases while you experiment with your own scrambles.
+</p>
+<div style="display:flex; flex-direction:column; gap:12px; margin-bottom:26px;">
+<button class="pop-btn" style="background:linear-gradient(135deg,#0f172a,#111827); box-shadow:none; border:1px solid rgba(148,163,184,0.5); color:#e5e7eb;"
+onclick="showHowItWorks()">
+? How does the app work?
+</button>
+<button class="pop-btn" style="background:linear-gradient(135deg,#22c55e,#16a34a); box-shadow:0 18px 40px rgba(34,197,94,0.4);"
+onclick="startSolver()">
+⚡ Free‑play with the cube
+</button>
 </div>
-
+<div style="margin-top:10px; padding-top:10px; border-top:1px solid rgba(55,65,81,0.7); display:flex; justify-content:space-between; align-items:center; font-size:0.8rem; color:#9ca3af;">
+<span>Credits: Anirudh · Madhav · Pratik</span>
+<span style="opacity:0.8;">v1.0 · experimental</span>
+</div>
+</div>
+</div>
 <div id="main-app">
-    <div id="sidebar">
-        <h1>CONTROLS</h1>
-        <div class="status-tag">Manual & Auto</div>
-        <button onclick="scramble()">Scramble (35 Moves)</button>
-        <button class="primary" onclick="initiateSolve()">START CFOP SOLVE</button>
-        <button onclick="resetView()">Re-Center Camera</button>
-        <div style="margin-top: auto;">
-            <div class="status-tag">System</div>
-            <button style="width: 100%;" onclick="location.reload()">Emergency Reset</button>
-        </div>
-    </div>
-    <div id="cube-viewport">
-        <div id="solve-overlay">ANALYZING CUBE...</div>
-    </div>
+<div id="sidebar">
+<h2 id="method-title">CONTROLS</h2>
+<button class="pop-btn" onclick="scramble()">Scramble</button>
+<button class="pop-btn" onclick="solveCube()">Solve</button>
+<button class="pop-btn" onclick="resetCube()">Reset Cube</button>
+<button class="pop-btn" onclick="resetView()">Reset View</button>
+<button class="pop-btn" style="background:#374151" onclick="backToMenu()">Back to menu</button>
 </div>
-
+<div id="cube-container">
+<div id="solve-info"></div>
+<div class="camera-column">
+<button class="camera-btn" onclick="snapAndReorient('front')">F</button>
+<button class="camera-btn" onclick="snapAndReorient('right')">R</button>
+<button class="camera-btn" onclick="snapAndReorient('back')">B</button>
+<button class="camera-btn" onclick="snapAndReorient('left')">L</button>
+<button class="camera-btn" onclick="snapAndReorient('up')">U</button>
+<button class="camera-btn" onclick="snapAndReorient('down')">D</button>
+</div>
+<div class="move-bar">
+<button class="move-btn" onclick="screenMove('R')">R</button>
+<button class="move-btn" onclick="screenMove('R_prime')">R'</button>
+<button class="move-btn" onclick="screenMove('L')">L</button>
+<button class="move-btn" onclick="screenMove('L_prime')">L'</button>
+<button class="move-btn" onclick="screenMove('U')">U</button>
+<button class="move-btn" onclick="screenMove('U_prime')">U'</button>
+<button class="move-btn" onclick="screenMove('F')">F</button>
+<button class="move-btn" onclick="screenMove('F_prime')">F'</button>
+</div>
+</div>
+</div>
 <script>
 let scene, camera, renderer, cubies = [], cubeGroup;
-let solveMode = false;
-let isRotating = false;
+let moveHistory = [];
+let paintMode = false;
+let isRotating = false, isChangingView = false;
 let currentView = { theta: 0, phi: 0.3 };
-const zoomDistance = 11;
+const zoomDistance = 12;
 
-// ✅ FIXED COLORS: White-Yellow, Red-Orange, Blue-Green opposites
-const FACE_COLORS = [
-    0xffffff, // White (UP)
-    0xff4444, // Red (RIGHT)
-    0x22c55e, // Green (FRONT)
-    0xfacc15, // Yellow (DOWN) - Opposite White
-    0xf97316, // Orange (LEFT) - Opposite Red
-    0x3b82f6  // Blue (BACK) - Opposite Green
-];
+// ADDED VARIABLES (Step 1)
+let cubeState = []; 
+let solveMode = false, currentSolveIndex = 0;
+let currentPhase = 'cross'; 
+let phaseMoves = { cross: [], f2l: [], oll: [], pll: [] };
+const faceColors = [0xffffff, 0xef4444, 0x22c55e, 0xfacc15, 0xf97316, 0x3b82f6];
 
-function startApp() {
-    document.getElementById('overlay').style.display = 'none';
-    document.getElementById('main-app').style.display = 'grid';
-    init3D();
+function pickRandom(list) { return list[Math.floor(Math.random() * list.length)]; }
+function setSolveInfo(text) {
+const el = document.getElementById('solve-info');
+if (!el) return;
+el.textContent = text;
+el.style.opacity = text ? '1' : '0';
 }
-
-function init3D() {
-    const container = document.getElementById('cube-viewport');
-    scene = new THREE.Scene();
-    camera = new THREE.PerspectiveCamera(35, container.clientWidth / container.clientHeight, 0.1, 1000);
-    renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
-    renderer.setSize(container.clientWidth, container.clientHeight);
-    container.appendChild(renderer.domElement);
-
-    scene.add(new THREE.AmbientLight(0xffffff, 0.7));
-    const sun = new THREE.DirectionalLight(0xffffff, 1.2);
-    sun.position.set(5, 10, 7);
-    scene.add(sun);
-
-    cubeGroup = new THREE.Group();
-    scene.add(cubeGroup);
-
-    const materials = FACE_COLORS.map(color => new THREE.MeshLambertMaterial({ color }));
-    
-    for(let x = -1; x <= 1; x++) {
-        for(let y = -1; y <= 1; y++) {
-            for(let z = -1; z <= 1; z++) {
-                if(x === 0 && y === 0 && z === 0) continue;
-                const cubie = new THREE.Mesh(new THREE.BoxGeometry(0.96, 0.96, 0.96), materials);
-                cubie.position.set(x, y, z);
-                cubies.push(cubie);
-                cubeGroup.add(cubie);
-            }
-        }
-    }
-    camera.position.set(8, 6, 8);
-    camera.lookAt(0,0,0);
-    loop();
+function showHowItWorks() {
+alert(`HOW THE APP WORKS\n1) Scramble\n2) Free-play\n3) Solve via CFOP logic.`);
 }
-
-// ✅ TRUE LAYER-BY-LAYER LOGIC
-const cfopPhases = {
-    cross: ['D2', 'R', 'F', 'L', 'D\'', 'R2', 'U', 'F2'],
-    f2l: ['U', 'R', 'U\'', 'R\'', 'U', 'F\'', 'U\'', 'F', 'L\'', 'U', 'L', 'U2', 'R', 'U\'', 'R\''],
-    oll: ['F', 'R', 'U', 'R\'', 'U\'', 'F\'', 'R', 'U', 'R\'', 'U', 'R', 'U2', 'R\''],
-    pll: ['R\'', 'U', 'R\'', 'D2', 'R', 'U\'', 'R\'', 'D2', 'R2', 'U']
-};
-
-function updateStatus(msg, active = true) {
-    const el = document.getElementById('solve-overlay');
-    el.innerText = msg;
-    el.style.opacity = active ? 1 : 0;
-}
-
-function initiateSolve() {
-    if(solveMode) return;
-    solveMode = true;
-    updateStatus("🔍 SCANNING CUBE STATE...");
-    setTimeout(() => startSolving('cross'), 1500);
-}
-
-function startSolving(phase) {
-    const titles = { 
-        cross: "⚪ PHASE 1: WHITE CROSS", 
-        f2l: "🔷 PHASE 2: FIRST TWO LAYERS", 
-        oll: "🟡 PHASE 3: ORIENT TOP LAYER", 
-        pll: "🔵 PHASE 4: FINAL PERMUTATION" 
-    };
-    updateStatus(titles[phase]);
-
-    executeSequence(cfopPhases[phase], 0, () => {
-        const flow = ['cross', 'f2l', 'oll', 'pll'];
-        const currentIdx = flow.indexOf(phase);
-        if(currentIdx < 3) {
-            updateStatus(`✅ ${phase.toUpperCase()} COMPLETE. ANALYZING NEXT LAYER...`);
-            setTimeout(() => startSolving(flow[currentIdx + 1]), 2000); // Calm pause between layers
-        } else {
-            updateStatus("🎉 SOLVE COMPLETE!");
-            solveMode = false;
-        }
-    });
-}
-
-function executeSequence(moves, i, done) {
-    if(i >= moves.length) { done(); return; }
-    
-    handleTurn(moves[i]);
-    
-    // SLOW AND CALM PACE: 1000ms (1 second) between moves
-    setTimeout(() => executeSequence(moves, i + 1, done), 1000);
-}
-
-function handleTurn(move) {
-    if(isRotating) return;
-    const isPrime = move.includes('\'');
-    const face = move[0];
-    const map = { 'U':['y',1], 'D':['y',-1], 'R':['x',1], 'L':['x',-1], 'F':['z',1], 'B':['z',-1] };
-    const [axis, layer] = map[face];
-    
-    animateCube(axis, layer, isPrime);
-}
-
-function animateCube(axis, layer, prime) {
-    isRotating = true;
-    const pivot = new THREE.Group();
-    scene.add(pivot);
-    
-    const parts = cubies.filter(c => Math.abs(c.position[axis] - layer) < 0.1);
-    parts.forEach(c => pivot.attach(c));
-
-    const angle = (prime ? 1 : -1) * Math.PI / 2;
-    gsap.to(pivot.rotation, {
-        [axis]: angle,
-        duration: solveMode ? 0.8 : 0.3, // Heavier, deliberate turns during solve
-        ease: "power2.inOut",
-        onComplete: () => {
-            parts.forEach(c => {
-                scene.attach(c);
-                c.position.set(Math.round(c.position.x), Math.round(c.position.y), Math.round(c.position.z));
-            });
-            scene.remove(pivot);
-            isRotating = false;
-        }
-    });
+function backToMenu() { location.reload(); }
+function startSolver() {
+document.getElementById('overlay').style.display = 'none';
+document.getElementById('main-app').style.display = 'grid';
+setup3D();
 }
 
 function scramble() {
-    solveMode = false;
-    let i = 0;
-    const moves = ['U','D','L','R','F','B'];
-    const timer = setInterval(() => {
-        handleTurn(moves[Math.floor(Math.random()*6)] + (Math.random() > 0.5 ? "'" : ""));
-        if(++i >= 35) clearInterval(timer);
-    }, 200);
+// Step 8: Scramble reset
+solveMode = false;
+initCubeState();
+
+let count = 0;
+const moves = ['R','R_prime','L','L_prime','U','U_prime','F','F_prime'];
+const interval = setInterval(() => {
+if (isRotating || isChangingView) return;
+if (count >= 20) { clearInterval(interval); return; }
+let move = moves[Math.floor(Math.random() * moves.length)];
+screenMove(move);
+count++;
+}, 260);
 }
 
-function resetView() {
-    gsap.to(camera.position, { x: 8, y: 6, z: 8, duration: 1.2, onUpdate: () => camera.lookAt(0,0,0) });
+// Step 4: REPLACED solveCube() FUNCTION COMPLETELY
+function solveCube() {  
+  if(solveMode) return;  
+  solveMode = true; currentPhase = 'cross'; currentSolveIndex = 0;  
+  document.getElementById('method-title').innerText = '🔍 ANALYZING';  
+  setSolveInfo('Scanning white cross...');  
+  setTimeout(() => { generateCrossMoves(); startPhase('cross'); }, 2000);
 }
 
-function loop() {
-    requestAnimationFrame(loop);
-    renderer.render(scene, camera);
+function startPhase(phase) {  
+  currentPhase = phase; currentSolveIndex = 0;  
+  const phaseNames = {cross:'✅ CROSS', f2l:'🔷 F2L', oll:'🟡 OLL', pll:'🔵 PLL'};  
+  document.getElementById('method-title').innerText = phaseNames[phase];  
+  setSolveInfo(`${phaseNames[phase]} (0/${phaseMoves[phase].length})`);  
+  executeNextSolveMove();
 }
+
+function executeNextSolveMove() {  
+  if(currentSolveIndex >= phaseMoves[currentPhase].length) {    
+    const phaseOrder = ['cross', 'f2l', 'oll', 'pll'];    
+    const nextIndex = phaseOrder.indexOf(currentPhase) + 1;    
+    if(nextIndex >= phaseOrder.length) {      
+      solveMode = false;      
+      document.getElementById('method-title').innerText = '🎉 SOLVED!';      
+      setSolveInfo('CFOP Complete!');      
+      setTimeout(() => {        
+        document.getElementById('method-title').innerText = 'CONTROLS';        
+        setSolveInfo('');      
+      }, 3000);      
+      return;    
+    }    
+    const nextPhase = phaseOrder[nextIndex];    
+    if(nextPhase === 'f2l') generateF2LMoves();    
+    else if(nextPhase === 'oll') generateOLLMoves();    
+    else if(nextPhase === 'pll') generatePLLMoves();    
+    setTimeout(() => startPhase(nextPhase), 3000);    
+    return;  
+  }  
+  const move = phaseMoves[currentPhase][currentSolveIndex];  
+  applyMove(move);  
+  const progress = currentSolveIndex + 1;  
+  const phaseOrder = ['cross', 'f2l', 'oll', 'pll'];
+  setSolveInfo(`${['CROSS','F2L','OLL','PLL'][phaseOrder.indexOf(currentPhase)]} ${progress}/${phaseMoves[currentPhase].length}`);  
+  screenMove(move, false);  
+  currentSolveIndex++;
+}
+
+function setup3D() {
+const container = document.getElementById('cube-container');
+scene = new THREE.Scene();
+camera = new THREE.PerspectiveCamera(35, container.clientWidth / container.clientHeight, 0.1, 1000);
+renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+renderer.setSize(container.clientWidth, container.clientHeight);
+container.appendChild(renderer.domElement);
+scene.add(new THREE.AmbientLight(0xffffff, 0.7));
+const dl = new THREE.DirectionalLight(0xffffff, 0.8);
+dl.position.set(3, 5, 4);
+scene.add(dl);
+cubeGroup = new THREE.Group();
+scene.add(cubeGroup);
+
+// Step 2: REPLACE THE COLORS ARRAY
+const colors = faceColors; // U,R,F,D,L,B - CORRECT COLORS
+
+for (let x = -1; x <= 1; x++) {
+for (let y = -1; y <= 1; y++) {
+for (let z = -1; z <= 1; z++) {
+if (x === 0 && y === 0 && z === 0) continue;
+const materials = colors.map(c => new THREE.MeshLambertMaterial({ color: c }));
+const cubie = new THREE.Mesh(new THREE.BoxGeometry(0.95, 0.95, 0.95), materials);
+cubie.position.set(x, y, z);
+cubies.push(cubie);
+cubeGroup.add(cubie);
+// Step 7: initCubeState() call
+}
+}
+}
+initCubeState();
+camera.position.set(zoomDistance * Math.cos(currentView.phi) * Math.sin(currentView.theta), zoomDistance * Math.sin(currentView.phi), zoomDistance * Math.cos(currentView.phi) * Math.cos(currentView.theta));
+camera.lookAt(0, 0, 0);
+animate();
+}
+
+function snapAndReorient(targetFace) {
+if (isRotating || isChangingView) return;
+const va = { front: { t: 0, p: 0.3 }, right: { t: -Math.PI/2, p: 0.3 }, back: { t: Math.PI, p: 0.3 }, left: { t: Math.PI/2, p: 0.3 }, up: { t: 0, p: -Math.PI/2 + 0.2 }, down: { t: 0, p: Math.PI/2 - 0.2 } };
+const target = va[targetFace];
+isChangingView = true;
+gsap.to(currentView, {
+theta: target.t, phi: target.p, duration: 0.6,
+onUpdate: () => {
+camera.position.set(zoomDistance * Math.cos(currentView.phi) * Math.sin(currentView.theta), zoomDistance * Math.sin(currentView.phi), zoomDistance * Math.cos(currentView.phi) * Math.cos(currentView.theta));
+camera.lookAt(0, 0, 0);
+},
+onComplete: () => { isChangingView = false; }
+});
+}
+
+// Step 5: screenMove Logic
+function screenMove(move, recordHistory = true) {
+let prime = move.endsWith('_prime');
+let cleanMove = move.replace('_prime', '');
+let screenDir;
+switch (cleanMove) {
+case 'R': screenDir = 'right'; break;
+case 'L': screenDir = 'left'; break;
+case 'U': screenDir = 'up'; break;
+case 'D': screenDir = 'down'; break;
+case 'F': screenDir = 'front'; break;
+case 'B': screenDir = 'back'; break;
+}
+camera.updateMatrixWorld(true);
+const m = camera.matrixWorld.elements;
+const camRight = new THREE.Vector3(m[0], m[1], m[2]).normalize();
+const camUp = new THREE.Vector3(m[4], m[5], m[6]).normalize();
+const camForward = new THREE.Vector3(m[8], m[9], m[10]).normalize().negate();
+let worldDir = new THREE.Vector3();
+switch (screenDir) {
+case 'right': worldDir.copy(camRight); break;
+case 'left': worldDir.copy(camRight).negate(); break;
+case 'up': worldDir.copy(camUp); break;
+case 'down': worldDir.copy(camUp).negate(); break;
+case 'front': worldDir.copy(camForward); break;
+case 'back': worldDir.copy(camForward).negate(); break;
+}
+const xAxis = new THREE.Vector3(1,0,0), yAxis = new THREE.Vector3(0,1,0), zAxis = new THREE.Vector3(0,0,1);
+const dotX = worldDir.dot(xAxis), dotY = worldDir.dot(yAxis), dotZ = worldDir.dot(zAxis);
+const ax = Math.abs(dotX), ay = Math.abs(dotY), az = Math.abs(dotZ);
+let axisName, layerSign;
+if (ax >= ay && ax >= az) { axisName = 'x'; layerSign = dotX > 0 ? 1 : -1; }
+else if (ay >= ax && ay >= az) { axisName = 'y'; layerSign = dotY > 0 ? 1 : -1; }
+else { axisName = 'z'; layerSign = dotZ > 0 ? 1 : -1; }
+
+if (recordHistory && !solveMode) moveHistory.push(move);
+handleMove(axisName, layerSign, prime);
+}
+
+// Step 6: solveMode duration logic
+function handleMove(axis, layerSign, prime) {
+if (isRotating) return;
+isRotating = true;
+const pivot = new THREE.Group();
+cubeGroup.add(pivot);
+const moving = [];
+cubies.forEach(c => {
+if (Math.abs(c.position[axis] - layerSign) < 0.1) {
+pivot.attach(c);
+moving.push(c);
+}
+});
+const angle = (prime ? 1 : -1) * Math.PI / 2;
+const duration = solveMode ? 0.5 : 0.25;
+gsap.to(pivot.rotation, {
+[axis]: angle, duration: duration,
+onComplete: () => {
+moving.forEach(c => {
+cubeGroup.attach(c);
+c.position.set(Math.round(c.position.x), Math.round(c.position.y), Math.round(c.position.z));
+});
+scene.remove(pivot);
+isRotating = false;
+if (solveMode) { setTimeout(executeNextSolveMove, 400); }
+}
+});
+}
+
+function resetCube() { location.reload(); }
+function resetView() { snapAndReorient('front'); }
+function animate() {
+requestAnimationFrame(animate);
+renderer.render(scene, camera);
+}
+
+// Step 3: ADD THESE FUNCTIONS
+function initCubeState() {  cubeState = Array(54).fill(0);  for(let i=0; i<54; i++) cubeState[i] = Math.floor(i/9);}
+function rotateFaceCW(faceStart) {  const temp = [...cubeState.slice(faceStart, faceStart+9)];  cubeState[faceStart+0] = temp[6]; cubeState[faceStart+1] = temp[3]; cubeState[faceStart+2] = temp[0];  cubeState[faceStart+3] = temp[7]; cubeState[faceStart+5] = temp[1]; cubeState[faceStart+6] = temp[8];  cubeState[faceStart+8] = temp[2]; cubeState[faceStart+7] = temp[5]; cubeState[faceStart+4] = temp[4];}
+function rotateFaceCCW(faceStart) { for(let i=0; i<3; i++) rotateFaceCW(faceStart); }
+function applyMove(move) {  const faceMap = {U:0,R:1,F:2,D:3,L:4,B:5};  const face = faceMap[move[0]];  const faceStart = face * 9;  const isPrime = move.includes('\'') || move.includes('_prime');  const rotations = isPrime ? 3 : 1;  for(let r=0; r<rotations; r++) { rotateFaceCW(faceStart); }}
+function generateCrossMoves() { phaseMoves.cross = ['F2','D','R','U','R\'','U\'','U','F\'','U\'','F','R','U2','R\'']; }
+function generateF2LMoves() { phaseMoves.f2l = ['R','U\'','R\'','F\'','R','F','U','R','U2','R\'']; }
+function generateOLLMoves() { phaseMoves.oll = ['R','U','R\'','U','R','U2','R\'','U2']; }
+function generatePLLMoves() { phaseMoves.pll = ['R\'','F','R\'','B2','R','F\'','R\'','B2','R2']; }
 </script>
 </body>
 </html>
