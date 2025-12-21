@@ -257,14 +257,12 @@ let paintMode = false;
 let isRotating = false, isChangingView = false;
 let currentView = { theta: 0, phi: 0.3 };
 const zoomDistance = 12;
-
 // ADDED VARIABLES (Step 1)
-let cubeState = []; 
+let cubeState = [];
 let solveMode = false, currentSolveIndex = 0;
-let currentPhase = 'cross'; 
+let currentPhase = 'cross';
 let phaseMoves = { cross: [], f2l: [], oll: [], pll: [] };
 const faceColors = [0xffffff, 0xef4444, 0x22c55e, 0xfacc15, 0xf97316, 0x3b82f6];
-
 function pickRandom(list) { return list[Math.floor(Math.random() * list.length)]; }
 function setSolveInfo(text) {
 const el = document.getElementById('solve-info');
@@ -281,12 +279,10 @@ document.getElementById('overlay').style.display = 'none';
 document.getElementById('main-app').style.display = 'grid';
 setup3D();
 }
-
 function scramble() {
 // Step 8: Scramble reset
 solveMode = false;
 initCubeState();
-
 let count = 0;
 const moves = ['R','R_prime','L','L_prime','U','U_prime','F','F_prime'];
 const interval = setInterval(() => {
@@ -297,54 +293,50 @@ screenMove(move);
 count++;
 }, 260);
 }
-
 // Step 4: REPLACED solveCube() FUNCTION COMPLETELY
-function solveCube() {  
-  if(solveMode) return;  
-  solveMode = true; currentPhase = 'cross'; currentSolveIndex = 0;  
-  document.getElementById('method-title').innerText = '🔍 ANALYZING';  
-  setSolveInfo('Scanning white cross...');  
+function solveCube() {
+  if(solveMode) return;
+  solveMode = true; currentPhase = 'cross'; currentSolveIndex = 0;
+  document.getElementById('method-title').innerText = '🔍 ANALYZING';
+  setSolveInfo('Scanning white cross...');
   setTimeout(() => { generateCrossMoves(); startPhase('cross'); }, 2000);
 }
-
-function startPhase(phase) {  
-  currentPhase = phase; currentSolveIndex = 0;  
-  const phaseNames = {cross:'✅ CROSS', f2l:'🔷 F2L', oll:'🟡 OLL', pll:'🔵 PLL'};  
-  document.getElementById('method-title').innerText = phaseNames[phase];  
-  setSolveInfo(`${phaseNames[phase]} (0/${phaseMoves[phase].length})`);  
+function startPhase(phase) {
+  currentPhase = phase; currentSolveIndex = 0;
+  const phaseNames = {cross:'✅ CROSS', f2l:'🔷 F2L', oll:'🟡 OLL', pll:'🔵 PLL'};
+  document.getElementById('method-title').innerText = phaseNames[phase];
+  setSolveInfo(`${phaseNames[phase]} (0/${phaseMoves[phase].length})`);
   executeNextSolveMove();
 }
-
-function executeNextSolveMove() {  
-  if(currentSolveIndex >= phaseMoves[currentPhase].length) {    
-    const phaseOrder = ['cross', 'f2l', 'oll', 'pll'];    
-    const nextIndex = phaseOrder.indexOf(currentPhase) + 1;    
-    if(nextIndex >= phaseOrder.length) {      
-      solveMode = false;      
-      document.getElementById('method-title').innerText = '🎉 SOLVED!';      
-      setSolveInfo('CFOP Complete!');      
-      setTimeout(() => {        
-        document.getElementById('method-title').innerText = 'CONTROLS';        
-        setSolveInfo('');      
-      }, 3000);      
-      return;    
-    }    
-    const nextPhase = phaseOrder[nextIndex];    
-    if(nextPhase === 'f2l') generateF2LMoves();    
-    else if(nextPhase === 'oll') generateOLLMoves();    
-    else if(nextPhase === 'pll') generatePLLMoves();    
-    setTimeout(() => startPhase(nextPhase), 3000);    
-    return;  
-  }  
-  const move = phaseMoves[currentPhase][currentSolveIndex];  
-  applyMove(move);  
-  const progress = currentSolveIndex + 1;  
+function executeNextSolveMove() {
+  if(currentSolveIndex >= phaseMoves[currentPhase].length) {
+    const phaseOrder = ['cross', 'f2l', 'oll', 'pll'];
+    const nextIndex = phaseOrder.indexOf(currentPhase) + 1;
+    if(nextIndex >= phaseOrder.length) {
+      solveMode = false;
+      document.getElementById('method-title').innerText = '🎉 SOLVED!';
+      setSolveInfo('CFOP Complete!');
+      setTimeout(() => {
+        document.getElementById('method-title').innerText = 'CONTROLS';
+        setSolveInfo('');
+      }, 3000);
+      return;
+    }
+    const nextPhase = phaseOrder[nextIndex];
+    if(nextPhase === 'f2l') generateF2LMoves();
+    else if(nextPhase === 'oll') generateOLLMoves();
+    else if(nextPhase === 'pll') generatePLLMoves();
+    setTimeout(() => startPhase(nextPhase), 3000);
+    return;
+  }
+  const move = phaseMoves[currentPhase][currentSolveIndex];
+  applyMove(move);
+  const progress = currentSolveIndex + 1;
   const phaseOrder = ['cross', 'f2l', 'oll', 'pll'];
-  setSolveInfo(`${['CROSS','F2L','OLL','PLL'][phaseOrder.indexOf(currentPhase)]} ${progress}/${phaseMoves[currentPhase].length}`);  
-  screenMove(move, false);  
+  setSolveInfo(`${['CROSS','F2L','OLL','PLL'][phaseOrder.indexOf(currentPhase)]} ${progress}/${phaseMoves[currentPhase].length}`);
+  screenMove(move, false);
   currentSolveIndex++;
 }
-
 function setup3D() {
 const container = document.getElementById('cube-container');
 scene = new THREE.Scene();
@@ -354,14 +346,12 @@ renderer.setSize(container.clientWidth, container.clientHeight);
 container.appendChild(renderer.domElement);
 scene.add(new THREE.AmbientLight(0xffffff, 0.7));
 const dl = new THREE.DirectionalLight(0xffffff, 0.8);
-dl.position.set(3, 5, 4);
+dl.position.set(3, 5, 5, 4);
 scene.add(dl);
 cubeGroup = new THREE.Group();
 scene.add(cubeGroup);
-
 // Step 2: REPLACE THE COLORS ARRAY
 const colors = faceColors; // U,R,F,D,L,B - CORRECT COLORS
-
 for (let x = -1; x <= 1; x++) {
 for (let y = -1; y <= 1; y++) {
 for (let z = -1; z <= 1; z++) {
@@ -380,7 +370,6 @@ camera.position.set(zoomDistance * Math.cos(currentView.phi) * Math.sin(currentV
 camera.lookAt(0, 0, 0);
 animate();
 }
-
 function snapAndReorient(targetFace) {
 if (isRotating || isChangingView) return;
 const va = { front: { t: 0, p: 0.3 }, right: { t: -Math.PI/2, p: 0.3 }, back: { t: Math.PI, p: 0.3 }, left: { t: Math.PI/2, p: 0.3 }, up: { t: 0, p: -Math.PI/2 + 0.2 }, down: { t: 0, p: Math.PI/2 - 0.2 } };
@@ -395,7 +384,6 @@ camera.lookAt(0, 0, 0);
 onComplete: () => { isChangingView = false; }
 });
 }
-
 // Step 5: screenMove Logic
 function screenMove(move, recordHistory = true) {
 let prime = move.endsWith('_prime');
@@ -430,11 +418,9 @@ let axisName, layerSign;
 if (ax >= ay && ax >= az) { axisName = 'x'; layerSign = dotX > 0 ? 1 : -1; }
 else if (ay >= ax && ay >= az) { axisName = 'y'; layerSign = dotY > 0 ? 1 : -1; }
 else { axisName = 'z'; layerSign = dotZ > 0 ? 1 : -1; }
-
 if (recordHistory && !solveMode) moveHistory.push(move);
 handleMove(axisName, layerSign, prime);
 }
-
 // Step 6: solveMode duration logic
 function handleMove(axis, layerSign, prime) {
 if (isRotating) return;
@@ -453,17 +439,28 @@ const duration = solveMode ? 0.5 : 0.25;
 gsap.to(pivot.rotation, {
 [axis]: angle, duration: duration,
 onComplete: () => {
-moving.forEach(c => {
-cubeGroup.attach(c);
-c.position.set(Math.round(c.position.x), Math.round(c.position.y), Math.round(c.position.z));
-});
-scene.remove(pivot);
-isRotating = false;
-if (solveMode) { setTimeout(executeNextSolveMove, 400); }
-}
-});
-}
+  moving.forEach(c => {
+    cubeGroup.attach(c);
+    c.position.set(Math.round(c.position.x), Math.round(c.position.y), Math.round(c.position.z));
+  });
+  scene.remove(pivot);
+  isRotating = false;
 
+  // === NEW: CORRECTLY UPDATE LOGICAL STATE ===
+  let moveName = '';
+  if (axis === 'x') moveName = layerSign > 0 ? 'R' : 'L';
+  else if (axis === 'y') moveName = layerSign > 0 ? 'U' : 'D';
+  else if (axis === 'z') moveName = layerSign > 0 ? 'F' : 'B';
+  if (prime) moveName += "'";
+
+  applyMove(moveName);  // Now uses the correct full-cycle version below
+
+  if (solveMode) {
+    setTimeout(executeNextSolveMove, 400);
+  }
+}
+});
+}
 function resetCube() { location.reload(); }
 function resetView() { snapAndReorient('front'); }
 function animate() {
@@ -471,11 +468,73 @@ requestAnimationFrame(animate);
 renderer.render(scene, camera);
 }
 
-// Step 3: ADD THESE FUNCTIONS
-function initCubeState() {  cubeState = Array(54).fill(0);  for(let i=0; i<54; i++) cubeState[i] = Math.floor(i/9);}
-function rotateFaceCW(faceStart) {  const temp = [...cubeState.slice(faceStart, faceStart+9)];  cubeState[faceStart+0] = temp[6]; cubeState[faceStart+1] = temp[3]; cubeState[faceStart+2] = temp[0];  cubeState[faceStart+3] = temp[7]; cubeState[faceStart+5] = temp[1]; cubeState[faceStart+6] = temp[8];  cubeState[faceStart+8] = temp[2]; cubeState[faceStart+7] = temp[5]; cubeState[faceStart+4] = temp[4];}
-function rotateFaceCCW(faceStart) { for(let i=0; i<3; i++) rotateFaceCW(faceStart); }
-function applyMove(move) {  const faceMap = {U:0,R:1,F:2,D:3,L:4,B:5};  const face = faceMap[move[0]];  const faceStart = face * 9;  const isPrime = move.includes('\'') || move.includes('_prime');  const rotations = isPrime ? 3 : 1;  for(let r=0; r<rotations; r++) { rotateFaceCW(faceStart); }}
+// === STEP 1: FULLY CORRECT CUBE STATE REPRESENTATION (REPLACES OLD BROKEN ONE) ===
+
+// cubeState: 54 stickers, faces: U(0-8), R(9-17), F(18-26), D(27-35), L(36-44), B(45-53)
+// Colors: 0=White(U), 1=Red(R), 2=Green(F), 3=Yellow(D), 4=Orange(L), 5=Blue(B)
+
+function initCubeState() {
+  cubeState = [];
+  for (let face = 0; face < 6; face++) {
+    for (let i = 0; i < 9; i++) {
+      cubeState.push(face);
+    }
+  }
+}
+
+function rotateFace(start, dir) {
+  const face = cubeState.slice(start, start + 9);
+  const rotated = new Array(9);
+  if (dir === "cw") {
+    rotated[0] = face[6]; rotated[1] = face[3]; rotated[2] = face[0];
+    rotated[3] = face[7];                       rotated[5] = face[1];
+    rotated[6] = face[8]; rotated[7] = face[5]; rotated[8] = face[2];
+    rotated[4] = face[4];
+  } else { // ccw
+    rotated[0] = face[2]; rotated[1] = face[5]; rotated[2] = face[8];
+    rotated[3] = face[1];                       rotated[5] = face[7];
+    rotated[6] = face[0]; rotated[7] = face[3]; rotated[8] = face[6];
+    rotated[4] = face[4];
+  }
+  for (let i = 0; i < 9; i++) {
+    cubeState[start + i] = rotated[i];
+  }
+}
+
+function cycleEdges(move, dir) {
+  const cycles = {
+    U: { cw: [19, 10, 46, 37], faces: [18,9,45,36] },     // F1 → R1 → B1 → L1
+    R: { cw: [23, 32, 48, 5],  faces: [18,27,45,0] },     // F5 → D5 → B3 → U5
+    F: { cw: [7, 12, 28, 41],  faces: [0,9,27,36] },      // U7 → R3 → D1 → L5
+    D: { cw: [25, 43, 52, 16], faces: [18,36,45,9] },     // F7 → L7 → B7 → R7
+    L: { cw: [3, 50, 30, 21],  faces: [0,45,27,18] },     // U3 → B5 → D3 → F3
+    B: { cw: [1, 39, 34, 14],  faces: [0,36,27,9] }       // U1 → L3 → D7 → R5
+  };
+
+  const c = cycles[move];
+  if (!c) return;
+
+  const pos = dir === "cw" ? c.cw : [...c.cw].reverse();
+  const temp = pos.map(p => cubeState[p]);
+
+  if (dir === "cw") {
+    for (let i = 0; i < 4; i++) cubeState[pos[i]] = temp[(i + 3) % 4];
+  } else {
+    for (let i = 0; i < 4; i++) cubeState[pos[i]] = temp[(i + 1) % 4];
+  }
+}
+
+function applyMove(move) {
+  const isPrime = move.includes("'") || move.includes("_prime");
+  const dir = isPrime ? "ccw" : "cw";
+  const base = move[0];
+
+  const faceStart = {U:0, R:9, F:18, D:27, L:36, B:45}[base];
+  rotateFace(faceStart, dir);
+  cycleEdges(base, dir);
+}
+
+// Temporary placeholder algs (we'll replace these with real solvers later)
 function generateCrossMoves() { phaseMoves.cross = ['F2','D','R','U','R\'','U\'','U','F\'','U\'','F','R','U2','R\'']; }
 function generateF2LMoves() { phaseMoves.f2l = ['R','U\'','R\'','F\'','R','F','U','R','U2','R\'']; }
 function generateOLLMoves() { phaseMoves.oll = ['R','U','R\'','U','R','U2','R\'','U2']; }
