@@ -257,7 +257,7 @@ body {
   background: linear-gradient(135deg, #ef4444, #dc2626);
   box-shadow: 0 18px 40px rgba(239,68,68,0.4);
 }
-/* === NEW PAINT TOOLS STYLES === */
+/* === PAINT TOOLS STYLES === */
 #color-picker .color-btn {
   width: 42px;
   height: 42px;
@@ -304,6 +304,33 @@ body {
   opacity: 0.4;
   cursor: not-allowed;
   transform: none;
+}
+
+/* NEW: Minimizable palette */
+#paint-palette-header {
+  cursor: pointer;
+  user-select: none;
+  padding: 12px 24px;
+  background: rgba(15,23,42,0.95);
+  border-bottom: 1px solid rgba(148,163,184,0.2);
+  font-weight: bold;
+  font-size: 0.9rem;
+  color: var(--accent-soft);
+  letter-spacing: 0.1em;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+#paint-palette-content {
+  transition: max-height 0.4s ease, opacity 0.3s ease;
+  max-height: 800px;
+  opacity: 1;
+  overflow: hidden;
+}
+#paint-palette-content.collapsed {
+  max-height: 0;
+  opacity: 0;
+  padding: 0 24px;
 }
 </style>
 </head>
@@ -367,48 +394,42 @@ body {
       <button class="move-btn" onclick="screenMove('F')">F</button>
       <button class="move-btn" onclick="screenMove('F_prime')">F'</button>
     </div>
-    <!-- PAINT PALETTE -->
+    <!-- MINIMIZABLE PAINT PALETTE -->
     <div id="paint-palette" style="position:absolute; bottom:90px; right:40px; display:none;">
-      <div style="background: var(--bg-glass); padding:20px 24px; border-radius:20px; border:1px solid rgba(148,163,184,0.3); backdrop-filter:blur(12px); box-shadow:0 20px 40px rgba(0,0,0,0.6);">
-        <div style="font-weight:bold; font-size:0.9rem; margin-bottom:12px; text-align:center; color:var(--accent-soft); letter-spacing:0.1em;">PAINT TOOLS</div>
-       
-        <!-- Color Picker -->
-        <div id="color-picker" style="display:flex; justify-content:center; gap:10px; margin-bottom:16px; flex-wrap:wrap;">
-          <button class="color-btn active" data-color="0xffffff" style="background:#ffffff;"></button>
-          <button class="color-btn" data-color="0xffff00" style="background:#facc15;"></button>
-          <button class="color-btn" data-color="0xff0000" style="background:#ef4444;"></button>
-          <button class="color-btn" data-color="0xffa500" style="background:#f97316;"></button>
-          <button class="color-btn" data-color="0x00ff00" style="background:#22c55e;"></button>
-          <button class="color-btn" data-color="0x0000ff" style="background:#3b82f6;"></button>
+      <div style="background: var(--bg-glass); border-radius:20px; border:1px solid rgba(148,163,184,0.3); backdrop-filter:blur(12px); box-shadow:0 20px 40px rgba(0,0,0,0.6); overflow:hidden;">
+        <div id="paint-palette-header" onclick="togglePalette()">
+          PAINT TOOLS <span id="palette-toggle">−</span>
         </div>
-       
-        <!-- Tools -->
-        <div style="display:flex; justify-content:center; gap:12px; margin-bottom:16px;">
-          <button id="tool-brush" class="tool-btn active">Brush</button>
-          <button id="tool-eraser" class="tool-btn">Eraser</button>
-        </div>
-       
-        <!-- Undo/Redo -->
-        <div style="display:flex; justify-content:center; gap:12px; margin-bottom:20px;">
-          <button id="undo-btn" class="tool-btn small" disabled>↺ Undo</button>
-          <button id="redo-btn" class="tool-btn small" disabled>↻ Redo</button>
-        </div>
-
-        <!-- Progress Feedback -->
-        <div style="margin: 20px 0 16px; text-align:center;">
-          <div style="font-weight:bold; font-size:0.95rem; color:var(--accent-soft); letter-spacing:0.08em;">
-            PROGRESS: <span id="step-num">0/7</span>
+        <div id="paint-palette-content">
+          <div style="padding:20px 24px;">
+            <!-- Color Picker -->
+            <div id="color-picker" style="display:flex; justify-content:center; gap:10px; margin-bottom:16px; flex-wrap:wrap;">
+              <button class="color-btn active" data-color="0xffffff" style="background:#ffffff;"></button>
+              <button class="color-btn" data-color="0xffff00" style="background:#facc15;"></button>
+              <button class="color-btn" data-color="0xff0000" style="background:#ef4444;"></button>
+              <button class="color-btn" data-color="0xffa500" style="background:#f97316;"></button>
+              <button class="color-btn" data-color="0x00ff00" style="background:#22c55e;"></button>
+              <button class="color-btn" data-color="0x0000ff" style="background:#3b82f6;"></button>
+            </div>
+           
+            <!-- Tools -->
+            <div style="display:flex; justify-content:center; gap:12px; margin-bottom:16px;">
+              <button id="tool-brush" class="tool-btn active">Brush</button>
+              <button id="tool-eraser" class="tool-btn">Eraser</button>
+            </div>
+           
+            <!-- Undo/Redo -->
+            <div style="display:flex; justify-content:center; gap:12px; margin-bottom:20px;">
+              <button id="undo-btn" class="tool-btn small" disabled>↺ Undo</button>
+              <button id="redo-btn" class="tool-btn small" disabled>↻ Redo</button>
+            </div>
+           
+            <!-- Start Solving Button -->
+            <button class="pop-btn" style="width:100%; padding:10px; font-size:0.9rem;" onclick="startSolvingPaintedCube()">
+              Start Solving
+            </button>
           </div>
-          <div id="step-status" style="margin-top:8px; font-size:0.85rem; color:var(--text-muted); min-height:1.2em;"></div>
-          <div style="margin-top:10px;">
-            <span id="checkmark" style="font-size:1.8rem; opacity:0; transition:opacity 0.4s ease;">✅</span>
-          </div>
         </div>
-       
-        <!-- Start Solving Button -->
-        <button class="pop-btn" style="width:100%; padding:10px; font-size:0.9rem;" onclick="startSolvingPaintedCube()">
-          Start Solving
-        </button>
       </div>
     </div>
   </div>
@@ -460,22 +481,35 @@ let moveHistory = [];
 let inputCubeGroup, inputCubies = [];
 let paintMode = false;
 let currentPaintColor = 0xffffff;
-let currentPaintTool = "brush";
+let currentPaintTool = "brush"; // "brush" or "eraser"
 let paintHistory = [];
 let historyIndex = -1;
 const paintColors = {
-  U: 0xffffff, D: 0xffff00, R: 0xff0000, L: 0xffa500, F: 0x00ff00, B: 0x0000ff
+  U: 0xffffff, // white
+  D: 0xffff00, // yellow
+  R: 0xff0000, // red
+  L: 0xffa500, // orange
+  F: 0x00ff00, // green
+  B: 0x0000ff // blue
 };
+// Original face colors for eraser (matches THREE.js face order: +X, -X, +Y, -Y, +Z, -Z)
 const originalInputColors = {
-  0: 0xff0000, 1: 0xffa500, 2: 0xffffff, 3: 0xffff00, 4: 0x00ff00, 5: 0x0000ff
+  0: 0xff0000, // Right (+X)
+  1: 0xffa500, // Left (-X)
+  2: 0xffffff, // Up (+Y)
+  3: 0xffff00, // Down (-Y)
+  4: 0x00ff00, // Front (+Z)
+  5: 0x0000ff // Back (-Z)
 };
 let isRotating = false, isChangingView = false;
 let currentView = { theta: 0, phi: 0.3 };
 const zoomDistance = 12;
+// Drag-to-rotate variables
 let isDragging = false;
 let previousMouseX = 0;
 let previousMouseY = 0;
 const rotationSpeed = 0.005;
+// Step-by-step guide messages for paint mode
 const paintGuideSteps = [
   "Paint the full cube to begin",
   "Step 1: Solve the white cross on bottom",
@@ -487,13 +521,8 @@ const paintGuideSteps = [
   "Step 7: Orient yellow corners → Solved!"
 ];
 let currentPaintStep = 0;
+// NEW: Separate move history for paint mode
 let paintMoveHistory = [];
-const raycaster = new THREE.Raycaster();
-const mouse = new THREE.Vector2();
-
-// NEW: Track last painted face to avoid duplicates during fast drag
-let lastPainted = null;
-
 function openTutorial() {
   document.getElementById('tutorial-modal').style.display = 'flex';
 }
@@ -505,7 +534,23 @@ function setSolveInfo(text) {
 }
 function showHowItWorks() {
   alert(`HOW THE APP WORKS
-...`); // your original alert
+1) Scramble
+- Press “Scramble” or do your own moves with the move buttons.
+- Every move (including scramble) is recorded in order.
+2) Play with the cube
+- Use the face buttons (F, R, B, L, U, D) to rotate the view.
+- Click any move (R, U, F, etc.) as many times as you want.
+- The cube turns just like a real 3×3.
+- Touch and drag (or click and drag) anywhere on the cube to freely rotate it!
+3) Solve
+- When you press “Solve”, the cube quickly performs all the reverse moves so you can watch it solve smoothly.
+4) Paint Mode
+- Click colors and paint faces to create any cube state.
+- You can then make moves — they are recorded.
+- Click "Start solving" to rewind back to your painted state!
+5) Reset
+- “Reset Cube” reloads everything back to the original solved cube and main menu style.`
+  );
 }
 function backToMenu() {
   location.reload();
@@ -515,20 +560,37 @@ function startSolver() {
   document.getElementById('main-app').style.display = 'grid';
   setup3D();
 }
+
+// NEW: Toggle palette minimize
+function togglePalette() {
+  const content = document.getElementById('paint-palette-content');
+  const toggle = document.getElementById('palette-toggle');
+  content.classList.toggle('collapsed');
+  toggle.textContent = content.classList.contains('collapsed') ? '+' : '−';
+}
+
 function startPaintMode() {
-  if (!scene) startSolver();
+  if (!scene) {
+    startSolver();
+  }
   paintMode = true;
   cubeGroup.visible = false;
   inputCubeGroup.visible = true;
   document.getElementById('paint-palette').style.display = 'block';
   currentPaintStep = 0;
-  setSolveInfo(paintGuideSteps[0]);
-  gsap.to(inputCubeGroup.position, { x: 0, y: 0, z: 0, duration: 0.8, ease: "power2.out" });
+  setSolveInfo(paintGuideSteps[currentPaintStep]);
+  gsap.to(inputCubeGroup.position, {
+    x: 0,
+    y: 0,
+    z: 0,
+    duration: 0.8,
+    ease: "power2.out"
+  });
   paintMoveHistory = [];
+  // Initialize undo/redo history
   paintHistory = [];
   historyIndex = -1;
-  savePaintState();
-  checkProgress();
+  savePaintState(); // save initial state
 }
 function exitPaintMode() {
   paintMode = false;
@@ -538,18 +600,43 @@ function exitPaintMode() {
   setSolveInfo('');
 }
 function startSolvingPaintedCube() {
-  // your original solving logic
+  if (paintMoveHistory.length === 0) {
+    alert('No moves to rewind! Try making some moves after painting.');
+    exitPaintMode();
+    return;
+  }
+  const titleEl = document.getElementById('method-title');
+  const originalTitle = titleEl.innerText;
+  const reverseMoves = paintMoveHistory.slice().reverse().map(m =>
+    m.endsWith('_prime') ? m.replace('_prime', '') : m + '_prime'
+  );
+  titleEl.innerText = 'Solving painted cube...';
+  setSolveInfo('');
+  let idx = 0;
+  const total = reverseMoves.length;
+  const performNext = () => {
+    if (idx >= total) {
+      paintMoveHistory = [];
+      titleEl.innerText = 'Solved!';
+      setTimeout(() => { titleEl.innerText = originalTitle; exitPaintMode(); }, 1000);
+      return;
+    }
+    screenMove(reverseMoves[idx]);
+    idx++;
+    setTimeout(performNext, 180);
+  };
+  performNext();
 }
+const raycaster = new THREE.Raycaster();
+const mouse = new THREE.Vector2();
 
-// NEW: Drag-to-paint core function
-function paintAtIntersection(intersects) {
-  if (intersects.length === 0) return;
-  const hit = intersects[0];
-  const mesh = hit.object;
-  const faceIndex = Math.floor(hit.faceIndex / 2);
-  const key = mesh.uuid + faceIndex;
-  if (key === lastPainted) return; // avoid repainting same sticker in one drag
-  lastPainted = key;
+// NEW: For smooth drag-to-paint
+let lastPaintedKey = null;
+
+function paintSticker(mesh, faceIndex) {
+  const key = mesh.uuid + '-' + faceIndex;
+  if (key === lastPaintedKey) return;
+  lastPaintedKey = key;
 
   if (currentPaintTool === "eraser") {
     mesh.material[faceIndex].color.setHex(originalInputColors[faceIndex]);
@@ -558,15 +645,37 @@ function paintAtIntersection(intersects) {
   }
 }
 
+function savePaintState() {
+  const state = inputCubies.map(cubie =>
+    cubie.material.map(mat => mat.color.getHex())
+  );
+  paintHistory = paintHistory.slice(0, historyIndex + 1);
+  paintHistory.push(state);
+  historyIndex++;
+  document.getElementById("undo-btn").disabled = historyIndex <= 0;
+  document.getElementById("redo-btn").disabled = historyIndex >= paintHistory.length - 1;
+}
+function applyPaintState(state) {
+  state.forEach((cubieColors, i) => {
+    cubieColors.forEach((color, faceIdx) => {
+      inputCubies[i].material[faceIdx].color.setHex(color);
+    });
+  });
+  renderer.render(scene, camera);
+}
 function onPointerDown(event) {
+  lastPaintedKey = null; // new stroke
   if (paintMode) {
-    lastPainted = null; // reset for new stroke
     const rect = renderer.domElement.getBoundingClientRect();
     mouse.x = ((event.clientX || event.touches[0].clientX) - rect.left) / rect.width * 2 - 1;
     mouse.y = -((event.clientY || event.touches[0].clientY) - rect.top) / rect.height * 2 + 1;
     raycaster.setFromCamera(mouse, camera);
     const intersects = raycaster.intersectObjects(inputCubies, false);
-    paintAtIntersection(intersects);
+    if (intersects.length > 0) {
+      const hit = intersects[0];
+      const faceIndex = Math.floor(hit.faceIndex / 2);
+      paintSticker(hit.object, faceIndex);
+    }
     isDragging = true;
     return;
   }
@@ -574,23 +683,24 @@ function onPointerDown(event) {
   previousMouseX = event.clientX || event.touches[0].clientX;
   previousMouseY = event.clientY || event.touches[0].clientY;
 }
-
 function onPointerMove(event) {
   if (!isDragging || isRotating || isChangingView) return;
-
   if (paintMode) {
     const rect = renderer.domElement.getBoundingClientRect();
     mouse.x = ((event.clientX || event.touches[0].clientX) - rect.left) / rect.width * 2 - 1;
     mouse.y = -((event.clientY || event.touches[0].clientY) - rect.top) / rect.height * 2 + 1;
     raycaster.setFromCamera(mouse, camera);
     const intersects = raycaster.intersectObjects(inputCubies, false);
-    paintAtIntersection(intersects);
+    if (intersects.length > 0) {
+      const hit = intersects[0];
+      const faceIndex = Math.floor(hit.faceIndex / 2);
+      paintSticker(hit.object, faceIndex);
+    }
     return;
   }
-
-  // regular view rotation
   const clientX = event.clientX || (event.touches && event.touches[0].clientX);
   const clientY = event.clientY || (event.touches && event.touches[0].clientY);
+  if (clientX === undefined) return;
   const deltaX = clientX - previousMouseX;
   const deltaY = clientY - previousMouseY;
   currentView.theta -= deltaX * rotationSpeed;
@@ -605,18 +715,220 @@ function onPointerMove(event) {
   previousMouseX = clientX;
   previousMouseY = clientY;
 }
-
 function onPointerUp() {
   if (paintMode && isDragging) {
-    savePaintState(); // save only once at end of drag
+    savePaintState(); // save once at end of stroke
   }
   isDragging = false;
-  lastPainted = null;
+  lastPaintedKey = null;
 }
-
-// Keep all your other functions (setup3D, screenMove, scramble, solveCube, checkProgress, savePaintState, applyPaintState, etc.) exactly as in the last version
-
-// Paint tools listeners
+function setup3D() {
+  const container = document.getElementById('cube-container');
+  scene = new THREE.Scene();
+  camera = new THREE.PerspectiveCamera(35, container.clientWidth / container.clientHeight, 0.1, 1000);
+  renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+  renderer.setSize(container.clientWidth, container.clientHeight);
+  container.appendChild(renderer.domElement);
+  scene.add(new THREE.AmbientLight(0xffffff, 0.7));
+  const dl = new THREE.DirectionalLight(0xffffff, 0.8);
+  dl.position.set(3, 5, 4);
+  scene.add(dl);
+  cubeGroup = new THREE.Group();
+  scene.add(cubeGroup);
+  const colors = [0xff0000, 0xffa500, 0xffffff, 0xffff00, 0x00ff00, 0x0000ff];
+  for (let x = -1; x <= 1; x++) {
+    for (let y = -1; y <= 1; y++) {
+      for (let z = -1; z <= 1; z++) {
+        if (x === 0 && y === 0 && z === 0) continue;
+        const materials = colors.map(c => new THREE.MeshLambertMaterial({ color: c }));
+        const cubie = new THREE.Mesh(new THREE.BoxGeometry(0.95, 0.95, 0.95), materials);
+        cubie.position.set(x, y, z);
+        cubies.push(cubie);
+        cubeGroup.add(cubie);
+      }
+    }
+  }
+  inputCubeGroup = new THREE.Group();
+  scene.add(inputCubeGroup);
+  for (let x = -1; x <= 1; x++) {
+    for (let y = -1; y <= 1; y++) {
+      for (let z = -1; z <= 1; z++) {
+        if (x === 0 && y === 0 && z === 0) continue;
+        const grayMats = new Array(6)
+          .fill(0)
+          .map(() => new THREE.MeshLambertMaterial({ color: 0x374151 }));
+        const ic = new THREE.Mesh(
+          new THREE.BoxGeometry(0.95, 0.95, 0.95),
+          grayMats
+        );
+        ic.position.set(x * 1.4, y * 1.4, z * 1.4);
+        inputCubies.push(ic);
+        inputCubeGroup.add(ic);
+      }
+    }
+  }
+  inputCubeGroup.position.set(-5, 0, 0);
+  inputCubeGroup.visible = false;
+  camera.position.set(
+    zoomDistance * Math.cos(currentView.phi) * Math.sin(currentView.theta),
+    zoomDistance * Math.sin(currentView.phi),
+    zoomDistance * Math.cos(currentView.phi) * Math.cos(currentView.theta)
+  );
+  camera.lookAt(0, 0, 0);
+  renderer.domElement.addEventListener('pointerdown', onPointerDown);
+  renderer.domElement.addEventListener('pointermove', onPointerMove);
+  renderer.domElement.addEventListener('pointerup', onPointerUp);
+  renderer.domElement.addEventListener('pointercancel', onPointerUp);
+  renderer.domElement.addEventListener('touchstart', onPointerDown, { passive: false });
+  renderer.domElement.addEventListener('touchmove', onPointerMove, { passive: false });
+  animate();
+}
+function snapAndReorient(targetFace) {
+  if (isRotating || isChangingView) return;
+  const va = {
+    front: { t: 0, p: 0.3 },
+    right: { t: -Math.PI/2, p: 0.3 },
+    back: { t: Math.PI, p: 0.3 },
+    left: { t: Math.PI/2, p: 0.3 },
+    up: { t: 0, p: -Math.PI/2 + 0.2 },
+    down: { t: 0, p: Math.PI/2 - 0.2 }
+  };
+  const target = va[targetFace];
+  isChangingView = true;
+  gsap.to(currentView, {
+    theta: target.t, phi: target.p, duration: 0.6,
+    onUpdate: () => {
+      camera.position.set(
+        zoomDistance * Math.cos(currentView.phi) * Math.sin(currentView.theta),
+        zoomDistance * Math.sin(currentView.phi),
+        zoomDistance * Math.cos(currentView.phi) * Math.cos(currentView.theta)
+      );
+      camera.lookAt(0, 0, 0);
+    },
+    onComplete: () => { isChangingView = false; }
+  });
+}
+function screenMove(move) {
+  let prime = move.endsWith('_prime');
+  let cleanMove = move.replace('_prime', '');
+  let screenDir;
+  switch (cleanMove) {
+    case 'R': screenDir = 'right'; break;
+    case 'L': screenDir = 'left'; break;
+    case 'U': screenDir = 'up'; break;
+    case 'D': screenDir = 'down'; break;
+    case 'F': screenDir = 'front'; break;
+    case 'B': screenDir = 'back'; break;
+  }
+  camera.updateMatrixWorld(true);
+  const m = camera.matrixWorld.elements;
+  const camRight = new THREE.Vector3(m[0], m[1], m[2]).normalize();
+  const camUp = new THREE.Vector3(m[4], m[5], m[6]).normalize();
+  const camForward = new THREE.Vector3(m[8], m[9], m[10]).normalize().negate();
+  let worldDir = new THREE.Vector3();
+  switch (screenDir) {
+    case 'right': worldDir.copy(camRight); break;
+    case 'left': worldDir.copy(camRight).negate(); break;
+    case 'up': worldDir.copy(camUp); break;
+    case 'down': worldDir.copy(camUp).negate(); break;
+    case 'front': worldDir.copy(camForward); break;
+    case 'back': worldDir.copy(camForward).negate(); break;
+  }
+  const xAxis = new THREE.Vector3(1,0,0);
+  const yAxis = new THREE.Vector3(0,1,0);
+  const zAxis = new THREE.Vector3(0,0,1);
+  const dotX = worldDir.dot(xAxis);
+  const dotY = worldDir.dot(yAxis);
+  const dotZ = worldDir.dot(zAxis);
+  const ax = Math.abs(dotX), ay = Math.abs(dotY), az = Math.abs(dotZ);
+  let axisName, layerSign;
+  if (ax >= ay && ax >= az) {
+    axisName = 'x';
+    layerSign = dotX > 0 ? 1 : -1;
+  } else if (ay >= ax && ay >= az) {
+    axisName = 'y';
+    layerSign = dotY > 0 ? 1 : -1;
+  } else {
+    axisName = 'z';
+    layerSign = dotZ > 0 ? 1 : -1;
+  }
+  if (paintMode) {
+    paintMoveHistory.push(move);
+  } else {
+    moveHistory.push(move);
+  }
+  handleMove(axisName, layerSign, prime);
+}
+function handleMove(axis, layerSign, prime) {
+  if (isRotating) return;
+  isRotating = true;
+  const pivot = new THREE.Group();
+  const activeGroup = paintMode ? inputCubeGroup : cubeGroup;
+  const activeCubies = paintMode ? inputCubies : cubies;
+  activeGroup.add(pivot);
+  const moving = [];
+  activeCubies.forEach(c => {
+    if (Math.abs(c.position[axis] - layerSign) < 0.1) {
+      pivot.attach(c);
+      moving.push(c);
+    }
+  });
+  const angle = (prime ? 1 : -1) * Math.PI / 2;
+  gsap.to(pivot.rotation, {
+    [axis]: '+=' + angle,
+    duration: 0.18,
+    ease: "power2.inOut",
+    onComplete: () => {
+      moving.forEach(c => {
+        activeGroup.attach(c);
+        c.position.set(Math.round(c.position.x), Math.round(c.position.y), Math.round(c.position.z));
+      });
+      scene.remove(pivot);
+      isRotating = false;
+    }
+  });
+}
+function scramble() {
+  let count = 0;
+  const moves = ['R','R_prime','L','L_prime','U','U_prime','F','F_prime'];
+  const interval = setInterval(() => {
+    if (isRotating || isChangingView) return;
+    if (count >= 40) { clearInterval(interval); return; }
+    screenMove(moves[Math.floor(Math.random() * moves.length)]);
+    count++;
+  }, 260);
+}
+function solveCube() {
+  if (moveHistory.length === 0) return;
+  const titleEl = document.getElementById('method-title');
+  const originalTitle = titleEl.innerText;
+  const reverseMoves = moveHistory.slice().reverse().map(m =>
+    m.endsWith('_prime') ? m.replace('_prime', '') : m + '_prime'
+  );
+  titleEl.innerText = 'Solving...';
+  setSolveInfo('');
+  let idx = 0;
+  const total = reverseMoves.length;
+  const performNext = () => {
+    if (idx >= total) {
+      moveHistory = [];
+      titleEl.innerText = 'Solved!';
+      setTimeout(() => { titleEl.innerText = originalTitle; }, 1000);
+      return;
+    }
+    screenMove(reverseMoves[idx]);
+    idx++;
+    setTimeout(performNext, 180);
+  };
+  performNext();
+}
+function resetCube() { location.reload(); }
+function resetView() { snapAndReorient('front'); }
+function animate() {
+  requestAnimationFrame(animate);
+  renderer.render(scene, camera);
+}
+// === PAINT TOOLS EVENT LISTENERS (added at the end) ===
 document.querySelectorAll(".color-btn").forEach(btn => {
   btn.addEventListener("click", () => {
     document.querySelectorAll(".color-btn").forEach(b => b.classList.remove("active"));
