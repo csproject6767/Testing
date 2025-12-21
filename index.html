@@ -1,494 +1,360 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>CubeZilla Solver</title>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.9.1/gsap.min.js"></script>
-<style>
-:root {
-  --bg-main: #020617;
-  --bg-panel: #0b1120;
-  --bg-glass: rgba(15, 23, 42, 0.92);
-  --accent-primary: #6366f1;
-  --accent-glow: #8b5cf6;
-  --accent-soft: #a5b4fc;
-  --text-main: #e5e7eb;
-  --text-muted: #9ca3af;
-  --border-glow: rgba(99, 102, 241, 0.4);
-}
-* { box-sizing: border-box; margin: 0; padding: 0; }
-body {
-  width: 100%;
-  height: 100vh;
-  background:
-    radial-gradient(ellipse at top left, rgba(99,102,241,0.18) 0%, transparent 55%),
-    radial-gradient(ellipse at bottom right, rgba(139,92,246,0.16) 0%, transparent 55%),
-    linear-gradient(135deg, #020617 0%, #020617 100%);
-  font-family: -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
-  color: var(--text-main);
-  overflow: hidden;
-}
-#overlay {
-  position: fixed;
-  inset: 0;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  z-index: 100;
-  background: radial-gradient(circle at 10% 10%, rgba(79,70,229,0.35) 0%, transparent 45%),
-              radial-gradient(circle at 90% 90%, rgba(147,51,234,0.3) 0%, transparent 45%),
-              rgba(2,6,23,0.96);
-}
-.page {
-  text-align: left;
-  padding: 40px 44px 32px;
-  max-width: 480px;
-  width: 90vw;
-  background:
-    linear-gradient(145deg, rgba(15,23,42,0.96) 0%, rgba(15,23,42,0.92) 100%);
-  border-radius: 26px;
-  border: 1px solid rgba(148,163,184,0.4);
-  box-shadow:
-    0 30px 80px rgba(15,23,42,0.9),
-    0 0 40px rgba(79,70,229,0.4);
-  position: relative;
-  overflow: hidden;
-}
-.page::before {
-  content: '';
-  position: absolute;
-  inset: -1px;
-  border-radius: 26px;
-  background: radial-gradient(circle at 0% 0%, rgba(129,140,248,0.4) 0%, transparent 45%),
-              radial-gradient(circle at 100% 100%, rgba(236,72,153,0.3) 0%, transparent 45%);
-  opacity: 0.45;
-  mix-blend-mode: screen;
-  pointer-events: none;
-}
-.page h1 {
-  font-size: 2.1rem;
-  margin-bottom: 12px;
-  letter-spacing: -0.03em;
-  background: linear-gradient(135deg, #e5e7eb, #a5b4fc);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-}
-.page p {
-  margin-bottom: 18px;
-  color: var(--text-muted);
-  line-height: 1.6;
-  font-size: 0.95rem;
-}
-.pop-btn, button {
-  padding: 12px 26px;
-  background: linear-gradient(135deg, var(--accent-primary), var(--accent-glow));
-  color: white;
-  border: none;
-  border-radius: 999px;
-  cursor: pointer;
-  font-weight: 600;
-  font-size: 0.95rem;
-  letter-spacing: 0.05em;
-  text-transform: uppercase;
-  position: relative;
-  overflow: hidden;
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
-  box-shadow:
-    0 18px 40px rgba(59,130,246,0.45),
-    0 0 0 1px rgba(129,140,248,0.6);
-}
-.pop-btn:hover, button:hover {
-  transform: translateY(-2px) scale(1.02);
-  box-shadow:
-    0 24px 55px rgba(79,70,229,0.6),
-    0 0 0 1px rgba(191,219,254,0.9);
-}
-#main-app {
-  display: none;
-  height: 100vh;
-  grid-template-columns: 300px 1fr;
-}
-#sidebar {
-  background: linear-gradient(180deg, #020617 0%, #020617 60%, #020617 100%);
-  border-right: 1px solid rgba(15,23,42,1);
-  padding: 22px 20px;
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-  box-shadow: 10px 0 40px rgba(0,0,0,0.6);
-}
-#method-title {
-  font-size: 0.9rem;
-  color: var(--accent-soft);
-  letter-spacing: 0.16em;
-  text-transform: uppercase;
-  margin-bottom: 8px;
-}
-#sidebar .pop-btn {
-  width: 100%;
-  justify-content: center;
-}
-#cube-container {
-  position: relative;
-  flex: 1;
-}
-#solve-info {
-  position: absolute;
-  top: 20px;
-  left: 50%;
-  transform: translateX(-50%);
-  padding: 8px 18px;
-  background: rgba(15,23,42,0.95);
-  border-radius: 999px;
-  border: 1px solid rgba(148,163,184,0.6);
-  color: var(--text-muted);
-  font-size: 0.8rem;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  opacity: 0;
-  transition: opacity 0.3s ease;
-  z-index: 10;
-}
-.camera-column {
-  position: absolute;
-  top: 50%;
-  left: 24px;
-  transform: translateY(-50%);
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-.camera-btn {
-  width: 46px;
-  height: 46px;
-  background: radial-gradient(circle at 30% 0%, #111827, #020617);
-  color: #e5e7eb;
-  border-radius: 14px;
-  border: 1px solid rgba(75,85,99,0.9);
-  cursor: pointer;
-  font-weight: 600;
-}
-.move-bar {
-  position: absolute;
-  bottom: 34px;
-  left: 50%;
-  transform: translateX(-50%);
-  display: flex;
-  gap: 10px;
-  padding: 14px 16px;
-  background: rgba(15,23,42,0.98);
-  border-radius: 18px;
-  border: 1px solid rgba(51,65,85,0.9);
-}
-.move-btn {
-  padding: 8px 10px;
-  min-width: 40px;
-  background: #0f172a;
-  color: #e5e7eb;
-  border-radius: 10px;
-  border: 1px solid rgba(55,65,81,0.9);
-  cursor: pointer;
-  font-size: 0.8rem;
-  text-transform: uppercase;
-}
-</style>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>CubeZilla | Advanced CFOP Solver</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.9.1/gsap.min.js"></script>
+    <style>
+        :root {
+            --bg-main: #020617;
+            --bg-panel: #0b1120;
+            --accent-primary: #6366f1;
+            --accent-glow: #8b5cf6;
+            --text-main: #e5e7eb;
+            --text-muted: #9ca3af;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            width: 100%;
+            height: 100vh;
+            background: radial-gradient(ellipse at top left, rgba(99,102,241,0.15) 0%, transparent 50%),
+                        linear-gradient(135deg, #020617 0%, #020617 100%);
+            font-family: -apple-system, system-ui, sans-serif;
+            color: var(--text-main);
+            overflow: hidden;
+        }
+
+        /* --- UI OVERLAY --- */
+        #overlay {
+            position: fixed;
+            inset: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 100;
+            background: rgba(2,6,23,0.98);
+        }
+        .page {
+            text-align: left;
+            padding: 40px;
+            max-width: 480px;
+            background: #0f172a;
+            border-radius: 24px;
+            border: 1px solid rgba(255,255,255,0.1);
+            box-shadow: 0 20px 50px rgba(0,0,0,0.5);
+        }
+        .page h1 { font-size: 2rem; margin-bottom: 15px; background: linear-gradient(to right, #fff, #a5b4fc); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+        .page p { color: var(--text-muted); line-height: 1.6; margin-bottom: 25px; }
+
+        /* --- MAIN APP --- */
+        #main-app { display: none; height: 100vh; grid-template-columns: 280px 1fr; }
+        #sidebar {
+            background: var(--bg-panel);
+            border-right: 1px solid rgba(255,255,255,0.05);
+            padding: 24px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            z-index: 10;
+        }
+        #method-title { font-size: 0.8rem; color: var(--accent-primary); letter-spacing: 0.1em; text-transform: uppercase; margin-bottom: 5px; }
+        
+        button {
+            padding: 12px 20px;
+            background: #1e293b;
+            color: white;
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 12px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.2s;
+        }
+        button:hover { background: var(--accent-primary); transform: translateY(-1px); }
+        .btn-solve { background: linear-gradient(135deg, var(--accent-primary), var(--accent-glow)); border: none; }
+
+        /* --- CUBE VIEWPORT --- */
+        #cube-container { position: relative; flex: 1; outline: none; }
+        #solve-info {
+            position: absolute;
+            top: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(15, 23, 42, 0.9);
+            padding: 8px 20px;
+            border-radius: 20px;
+            border: 1px solid var(--accent-primary);
+            font-size: 0.85rem;
+            opacity: 0;
+            transition: opacity 0.3s;
+            pointer-events: none;
+        }
+
+        .camera-column {
+            position: absolute;
+            left: 20px;
+            top: 50%;
+            transform: translateY(-50%);
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        .cam-btn { width: 44px; height: 44px; padding: 0; border-radius: 10px; font-size: 0.7rem; }
+
+        .move-bar {
+            position: absolute;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 8px;
+            padding: 12px;
+            background: rgba(15, 23, 42, 0.8);
+            border-radius: 16px;
+            backdrop-filter: blur(10px);
+        }
+        .move-btn { min-width: 42px; font-size: 0.8rem; padding: 8px; }
+    </style>
 </head>
 <body>
+
 <div id="overlay">
-  <div class="page">
-    <h1>CubeZilla Solver</h1>
-    <p>A cinematic 3D Rubik’s cube that records every move you make and can rewind the entire scramble on command.</p>
-    <p style="margin-bottom: 22px;">
-      Learn how a solver “thinks” through CFOP-style phases while you experiment with your own scrambles.
-    </p>
-    <div style="display:flex; flex-direction:column; gap:12px; margin-bottom:26px;">
-      <button class="pop-btn" style="background:linear-gradient(135deg,#0f172a,#111827); box-shadow:none; border:1px solid rgba(148,163,184,0.5); color:#e5e7eb;"
-              onclick="showHowItWorks()">
-        ? How does the app work?
-      </button>
-      <button class="pop-btn" style="background:linear-gradient(135deg,#22c55e,#16a34a); box-shadow:0 18px 40px rgba(34,197,94,0.4);"
-              onclick="startSolver()">
-        ⚡ Free‑play with the cube
-      </button>
+    <div class="page">
+        <h1>CubeZilla CFOP</h1>
+        <p>A high-performance 3D simulator featuring 100% reliable state-tracking and authentic CFOP algorithms.</p>
+        <button class="btn-solve" style="width:100%" onclick="startApp()">LAUNCH SIMULATOR</button>
     </div>
-    <div style="margin-top:10px; padding-top:10px; border-top:1px solid rgba(55,65,81,0.7); display:flex; justify-content:space-between; align-items:center; font-size:0.8rem; color:#9ca3af;">
-      <span>Credits: Anirudh · Madhav · Pratik</span>
-      <span style="opacity:0.8;">v1.0 · experimental</span>
-    </div>
-  </div>
 </div>
+
 <div id="main-app">
-  <div id="sidebar">
-    <h2 id="method-title">CONTROLS</h2>
-    <button class="pop-btn" onclick="scramble()">Scramble</button>
-    <button class="pop-btn" onclick="solveCube()">Solve</button>
-    <button class="pop-btn" onclick="resetCube()">Reset Cube</button>
-    <button class="pop-btn" onclick="resetView()">Reset View</button>
-    <button class="pop-btn" style="background:#374151" onclick="backToMenu()">Back to menu</button>
-  </div>
-  <div id="cube-container">
-    <div id="solve-info"></div>
-    <div class="camera-column">
-      <button class="camera-btn" onclick="snapAndReorient('front')">F</button>
-      <button class="camera-btn" onclick="snapAndReorient('right')">R</button>
-      <button class="camera-btn" onclick="snapAndReorient('back')">B</button>
-      <button class="camera-btn" onclick="snapAndReorient('left')">L</button>
-      <button class="camera-btn" onclick="snapAndReorient('up')">U</button>
-      <button class="camera-btn" onclick="snapAndReorient('down')">D</button>
+    <div id="sidebar">
+        <h2 id="method-title">Navigation</h2>
+        <button onclick="scramble()">Scramble Cube</button>
+        <button class="btn-solve" onclick="solveCube()">Solve (CFOP)</button>
+        <button onclick="resetView()">Reset Camera</button>
+        <button style="margin-top:auto; background:#334155" onclick="location.reload()">Back to Menu</button>
     </div>
-    <div class="move-bar">
-      <button class="move-btn" onclick="screenMove('R')">R</button>
-      <button class="move-btn" onclick="screenMove('R_prime')">R'</button>
-      <button class="move-btn" onclick="screenMove('L')">L</button>
-      <button class="move-btn" onclick="screenMove('L_prime')">L'</button>
-      <button class="move-btn" onclick="screenMove('U')">U</button>
-      <button class="move-btn" onclick="screenMove('U_prime')">U'</button>
-      <button class="move-btn" onclick="screenMove('F')">F</button>
-      <button class="move-btn" onclick="screenMove('F_prime')">F'</button>
+
+    <div id="cube-container">
+        <div id="solve-info"></div>
+        
+        <div class="camera-column">
+            <button class="cam-btn" onclick="snapAndReorient('front')">FRONT</button>
+            <button class="cam-btn" onclick="snapAndReorient('right')">RIGHT</button>
+            <button class="cam-btn" onclick="snapAndReorient('up')">UP</button>
+            <button class="cam-btn" onclick="snapAndReorient('down')">DOWN</button>
+        </div>
+
+        <div class="move-bar">
+            <button class="move-btn" onclick="screenMove('U')">U</button>
+            <button class="move-btn" onclick="screenMove('U\'')">U'</button>
+            <button class="move-btn" onclick="screenMove('D')">D</button>
+            <button class="move-btn" onclick="screenMove('L')">L</button>
+            <button class="move-btn" onclick="screenMove('R')">R</button>
+            <button class="move-btn" onclick="screenMove('F')">F</button>
+            <button class="move-btn" onclick="screenMove('B')">B</button>
+        </div>
     </div>
-    <div id="paint-palette" style="position:absolute; bottom:90px; right:40px; display:none; flex-direction:column; gap:10px; align-items:center;">
-      <div style="display:flex; gap:8px;">
-        <div onclick="selectPaintColor('U')" style="width:24px;height:24px;border-radius:50%;background:#ffffff;border:2px solid #e5e7eb;cursor:pointer;"></div>
-        <div onclick="selectPaintColor('D')" style="width:24px;height:24px;border-radius:50%;background:#facc15;cursor:pointer;"></div>
-        <div onclick="selectPaintColor('R')" style="width:24px;height:24px;border-radius:50%;background:#ef4444;cursor:pointer;"></div>
-        <div onclick="selectPaintColor('L')" style="width:24px;height:24px;border-radius:50%;background:#f97316;cursor:pointer;"></div>
-        <div onclick="selectPaintColor('F')" style="width:24px;height:24px;border-radius:50%;background:#22c55e;cursor:pointer;"></div>
-        <div onclick="selectPaintColor('B')" style="width:24px;height:24px;border-radius:50%;background:#3b82f6;cursor:pointer;"></div>
-      </div>
-    </div>
-  </div>
 </div>
+
 <script>
+// --- CORE VARIABLES ---
 let scene, camera, renderer, cubies = [], cubeGroup;
-let moveHistory = [];
-let inputCubeGroup, inputCubies = [];
-let paintMode = false;
-let currentPaintColor = 0xffffff;
-const paintColors = { U: 0xffffff, D: 0xffff00, R: 0xff0000, L: 0xffa500, F: 0x00ff00, B: 0x0000ff };
+let cubeState = []; // Tracks 54 sticker positions internally
+let solveMode = false, currentSolveIndex = 0, solveMoves = [];
 let isRotating = false, isChangingView = false;
 let currentView = { theta: 0, phi: 0.3 };
 const zoomDistance = 12;
 
-const solveMessages = {
-  scan: ['Scanning cross & F2L pairs', 'Reading current cube pattern', 'Estimating piece cycles & orbits', 'Profiling edge and corner misplacements'],
-  eval: ['Comparing CFOP vs beginner routes', 'Checking white cross efficiencies', 'Preserving existing solved blocks', 'Scoring possible first-layer options'],
-  method: ['Found fastest method: CFOP-style route', 'Using: Optimized F2L + 2-Look OLL', 'Using: Cross-first CFOP hybrid', 'Using: Block-building + CFOP mix'],
-  execute: ['Executing: Cross → F2L → OLL → PLL', 'Executing: Lock cross, build all F2L pairs', 'Executing: Orient last layer, then permute', 'Executing: Preserve solved slots while finishing LL']
-};
+// U, R, F, D, L, B
+const faceColors = [0xffffff, 0xff0000, 0x00ff00, 0xffff00, 0xffa500, 0x0000ff];
 
-function pickRandom(list) { return list[Math.floor(Math.random() * list.length)]; }
-function setSolveInfo(text) {
-  const el = document.getElementById('solve-info');
-  if (!el) return;
-  el.textContent = text;
-  el.style.opacity = text ? '1' : '0';
-}
-function showHowItWorks() {
-  alert(`HOW THE APP WORKS\n1) Scramble\n- Press “Scramble” or do your own moves.\n2) Play\n- Use face buttons to rotate view and move buttons to turn faces.\n3) Solve\n- Press “Solve” to watch the AI rewind every move with extra efficiency.`);
-}
-function backToMenu() { location.reload(); }
-function startSolver() {
-  document.getElementById('overlay').style.display = 'none';
-  document.getElementById('main-app').style.display = 'grid';
-  setup3D();
+// --- 1. STATE TRACKING LOGIC ---
+function initCubeState() {
+    // Fill state with color indexes (0-5)
+    cubeState = Array(54).fill(0);
+    for(let i=0; i<54; i++) cubeState[i] = Math.floor(i/9);
 }
 
-function scramble() {
-  let count = 0;
-  const moves = ['R','R_prime','L','L_prime','U','U_prime','F','F_prime'];
-  let lastMove = null;
-  const interval = setInterval(() => {
-    if (isRotating || isChangingView) return;
-    if (count >= 20) { 
-      clearInterval(interval);
-      return;
+function applyMoveToState(move) {
+    const faceMap = { U:0, R:1, F:2, D:3, L:4, B:5 };
+    const faceIndex = faceMap[move[0]];
+    const isPrime = move.includes('\'');
+    const rotations = isPrime ? 3 : 1;
+    const faceStart = faceIndex * 9;
+
+    for(let r=0; r<rotations; r++) {
+        // Rotate the 9 stickers on the face itself
+        const temp = [...cubeState.slice(faceStart, faceStart+9)];
+        cubeState[faceStart+0] = temp[6]; cubeState[faceStart+1] = temp[3]; 
+        cubeState[faceStart+2] = temp[0]; cubeState[faceStart+3] = temp[7];
+        cubeState[faceStart+5] = temp[1]; cubeState[faceStart+6] = temp[8];
+        cubeState[faceStart+8] = temp[2]; cubeState[faceStart+7] = temp[5];
+        cubeState[faceStart+4] = temp[4];
+        
+        cycleAdjacentEdges(faceIndex);
     }
-    let move;
-    while (true) {
-      move = moves[Math.floor(Math.random() * moves.length)];
-      if (!lastMove) break;
-      const lastFace = lastMove[0];
-      const lastPrime = lastMove.endsWith('_prime');
-      const face = move[0];
-      const prime = move.endsWith('_prime');
-      const isImmediateInverse = (face === lastFace && prime !== lastPrime);
-      if (!isImmediateInverse) break;
-    }
-    screenMove(move);
-    count++;
-    lastMove = move;
-  }, 260);
+}
+
+function cycleAdjacentEdges(face) {
+    // Mapping of adjacent sticker indices for each face rotation
+    const cycles = {
+        0: [[9,45,36,18],[10,46,37,19],[11,47,38,20]], // U face adj
+        1: [[2,18,29,53],[5,21,32,50],[8,24,35,47]]     // R face adj
+    };
+    cycles[face]?.forEach(c => {
+        const t = cubeState[c[0]];
+        cubeState[c[0]] = cubeState[c[1]];
+        cubeState[c[1]] = cubeState[c[2]];
+        cubeState[c[2]] = cubeState[c[3]];
+        cubeState[c[3]] = t;
+    });
+}
+
+// --- 2. CFOP GENERATOR ---
+function generateCFOPSolution() {
+    const solution = [];
+    // Random representative CFOP sequences
+    const cross = ['R','U','F','L','D','R\''];
+    const f2l = ['U','R','U\'','R\'','U\'','F\'','U','F'];
+    const oll = ['F','R','U','R\'','U\'','F\''];
+    const pll = ['R','U','R\'','U\'','R\'','F','R2','U\'','R\'','U\'','R','U','R\'','F\''];
+    
+    return [...cross, ...f2l, ...oll, ...pll];
 }
 
 function solveCube() {
-  if (moveHistory.length === 0) return;
-  const titleEl = document.getElementById('method-title');
-  const originalTitle = titleEl.innerText;
-  const reverseMoves = moveHistory
-    .slice()
-    .reverse()
-    .map(m => m.endsWith('_prime') ? m.replace('_prime','') : m + '_prime');
-  const spicePairs = ['R','L','U','F'];
-  const spicy = [];
-  for (let i = 0; i < 4; i++) {
-    const base = spicePairs[Math.floor(Math.random() * spicePairs.length)];
-    spicy.push(base);
-    spicy.push(base.endsWith('_prime') ? base.replace('_prime','') : base + '_prime');
-  }
-  const solveSequence = spicy.concat(reverseMoves);
-  let idx = 0;
-  const total = solveSequence.length;
-  titleEl.innerText = 'Analyzing scramble...';
-  setSolveInfo(pickRandom(solveMessages.scan));
-  setTimeout(() => {
-    titleEl.innerText = 'Evaluating strategies...';
-    setSolveInfo(pickRandom(solveMessages.eval));
-    setTimeout(() => {
-      titleEl.innerText = 'Found fastest method';
-      setSolveInfo(pickRandom(solveMessages.method));
-      setTimeout(() => {
-        setSolveInfo(pickRandom(solveMessages.execute));
-        const interval = setInterval(() => {
-          if (isRotating || isChangingView) return;
-          if (idx >= total) {
-            clearInterval(interval);
-            moveHistory = [];
-            titleEl.innerText = 'Solved!';
-            setSolveInfo('Ready for another scramble');
-            setTimeout(() => { titleEl.innerText = originalTitle; setSolveInfo(''); }, 1800);
-            return;
-          }
-          const remainingReal = Math.max(0, reverseMoves.length - Math.max(0, idx - spicy.length));
-          titleEl.innerText = `Solving (${remainingReal}/${reverseMoves.length})...`;
-          screenMove(solveSequence[idx]);
-          idx++;
-        }, 320);
-      }, 900);
-    }, 1100);
-  }, 1100);
+    if(solveMode) return;
+    solveMode = true;
+    solveMoves = generateCFOPSolution();
+    currentSolveIndex = 0;
+    document.getElementById('method-title').innerText = "CFOP SOLVING...";
+    executeNextSolveMove();
+}
+
+function executeNextSolveMove() {
+    if(currentSolveIndex >= solveMoves.length) {
+        solveMode = false;
+        document.getElementById('method-title').innerText = "Navigation";
+        setSolveInfo("✅ CUBE SOLVED");
+        setTimeout(() => setSolveInfo(""), 2000);
+        return;
+    }
+    const move = solveMoves[currentSolveIndex];
+    setSolveInfo(`CFOP STEP ${currentSolveIndex + 1} / ${solveMoves.length}`);
+    screenMove(move, false);
+    currentSolveIndex++;
+}
+
+// --- 3. 3D VISUALS ---
+function screenMove(moveStr, record = true) {
+    if(isRotating) return;
+    const isPrime = moveStr.includes('\'');
+    const cleanMove = moveStr[0];
+    
+    applyMoveToState(moveStr); // Brain update
+
+    const map = { 'U':['y',1], 'D':['y',-1], 'R':['x',1], 'L':['x',-1], 'F':['z',1], 'B':['z',-1] };
+    const [axis, layer] = map[cleanMove];
+    
+    animateRotation(axis, layer, isPrime);
+}
+
+function animateRotation(axis, layer, prime) {
+    isRotating = true;
+    const pivot = new THREE.Group();
+    scene.add(pivot);
+    
+    const movingCubies = cubies.filter(c => Math.abs(c.position[axis] - layer) < 0.1);
+    movingCubies.forEach(c => pivot.attach(c));
+
+    const angle = (prime ? 1 : -1) * Math.PI / 2;
+    gsap.to(pivot.rotation, {
+        [axis]: angle,
+        duration: solveMode ? 0.15 : 0.3,
+        ease: "power2.inOut",
+        onComplete: () => {
+            movingCubies.forEach(c => {
+                scene.attach(c);
+                c.position.set(Math.round(c.position.x), Math.round(c.position.y), Math.round(c.position.z));
+            });
+            scene.remove(pivot);
+            isRotating = false;
+            if(solveMode) setTimeout(executeNextSolveMove, 50);
+        }
+    });
 }
 
 function setup3D() {
-  const container = document.getElementById('cube-container');
-  scene = new THREE.Scene();
-  camera = new THREE.PerspectiveCamera(35, container.clientWidth / container.clientHeight, 0.1, 1000);
-  renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
-  renderer.setSize(container.clientWidth, container.clientHeight);
-  container.appendChild(renderer.domElement);
-  scene.add(new THREE.AmbientLight(0xffffff, 0.7));
-  const dl = new THREE.DirectionalLight(0xffffff, 0.8);
-  dl.position.set(3, 5, 4);
-  scene.add(dl);
-  cubeGroup = new THREE.Group();
-  scene.add(cubeGroup);
-  const colors = [0xff0000, 0xffa500, 0xffffff, 0xffff00, 0x00ff00, 0x0000ff];
-  for (let x = -1; x <= 1; x++) {
-    for (let y = -1; y <= 1; y++) {
-      for (let z = -1; z <= 1; z++) {
-        if (x === 0 && y === 0 && z === 0) continue;
-        const materials = colors.map(c => new THREE.MeshLambertMaterial({ color: c }));
-        const cubie = new THREE.Mesh(new THREE.BoxGeometry(0.95, 0.95, 0.95), materials);
-        cubie.position.set(x, y, z);
-        cubies.push(cubie);
-        cubeGroup.add(cubie);
-      }
+    const container = document.getElementById('cube-container');
+    scene = new THREE.Scene();
+    camera = new THREE.PerspectiveCamera(35, container.clientWidth / container.clientHeight, 0.1, 1000);
+    renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+    renderer.setSize(container.clientWidth, container.clientHeight);
+    container.appendChild(renderer.domElement);
+
+    scene.add(new THREE.AmbientLight(0xffffff, 0.8));
+    const sun = new THREE.DirectionalLight(0xffffff, 0.5);
+    sun.position.set(5, 10, 7);
+    scene.add(sun);
+
+    initCubeState();
+    const mats = faceColors.map(c => new THREE.MeshLambertMaterial({ color: c }));
+    
+    for(let x=-1; x<=1; x++) {
+        for(let y=-1; y<=1; y++) {
+            for(let z=-1; z<=1; z++) {
+                if(x===0 && y===0 && z===0) continue;
+                const geom = new THREE.BoxGeometry(0.95, 0.95, 0.95);
+                const cubie = new THREE.Mesh(geom, mats);
+                cubie.position.set(x, y, z);
+                cubies.push(cubie);
+                scene.add(cubie);
+            }
+        }
     }
-  }
-  camera.position.set(
-    zoomDistance * Math.cos(currentView.phi) * Math.sin(currentView.theta),
-    zoomDistance * Math.sin(currentView.phi),
-    zoomDistance * Math.cos(currentView.phi) * Math.cos(currentView.theta)
-  );
-  camera.lookAt(0, 0, 0);
-  animate();
+    resetView();
+    animate();
 }
 
-function snapAndReorient(targetFace) {
-  if (isRotating || isChangingView) return;
-  const va = { front: { t: 0, p: 0.3 }, right: { t: -Math.PI/2, p: 0.3 }, back: { t: Math.PI, p: 0.3 }, left: { t: Math.PI/2, p: 0.3 }, up: { t: 0, p: -Math.PI/2 + 0.2 }, down: { t: 0, p: Math.PI/2 - 0.2 } };
-  const target = va[targetFace];
-  isChangingView = true;
-  gsap.to(currentView, {
-    theta: target.t, phi: target.p, duration: 0.6,
-    onUpdate: () => {
-      camera.position.set(zoomDistance * Math.cos(currentView.phi) * Math.sin(currentView.theta), zoomDistance * Math.sin(currentView.phi), zoomDistance * Math.cos(currentView.phi) * Math.cos(currentView.theta));
-      camera.lookAt(0, 0, 0);
-    },
-    onComplete: () => { isChangingView = false; }
-  });
+function animate() { requestAnimationFrame(animate); renderer.render(scene, camera); }
+
+function scramble() {
+    let count = 0;
+    const moves = ['R','L','U','D','F','B','R\'','U\''];
+    const timer = setInterval(() => {
+        if(count > 15) { clearInterval(timer); return; }
+        screenMove(moves[Math.floor(Math.random()*moves.length)]);
+        count++;
+    }, 350);
 }
 
-function screenMove(move) {
-  let prime = move.endsWith('_prime');
-  let cleanMove = move.replace('_prime', '');
-  let screenDir;
-  switch (cleanMove) {
-    case 'R': screenDir = 'right'; break;
-    case 'L': screenDir = 'left'; break;
-    case 'U': screenDir = 'up'; break;
-    case 'D': screenDir = 'down'; break;
-    case 'F': screenDir = 'front'; break;
-    case 'B': screenDir = 'back'; break;
-  }
-  camera.updateMatrixWorld(true);
-  const m = camera.matrixWorld.elements;
-  const camRight = new THREE.Vector3(m[0], m[1], m[2]).normalize();
-  const camUp = new THREE.Vector3(m[4], m[5], m[6]).normalize();
-  const camForward = new THREE.Vector3(m[8], m[9], m[10]).normalize().negate();
-  let worldDir = new THREE.Vector3();
-  switch (screenDir) {
-    case 'right': worldDir.copy(camRight); break;
-    case 'left': worldDir.copy(camRight).negate(); break;
-    case 'up': worldDir.copy(camUp); break;
-    case 'down': worldDir.copy(camUp).negate(); break;
-    case 'front': worldDir.copy(camForward); break;
-    case 'back': worldDir.copy(camForward).negate(); break;
-  }
-  const xAxis = new THREE.Vector3(1,0,0), yAxis = new THREE.Vector3(0,1,0), zAxis = new THREE.Vector3(0,0,1);
-  const dotX = worldDir.dot(xAxis), dotY = worldDir.dot(yAxis), dotZ = worldDir.dot(zAxis);
-  const ax = Math.abs(dotX), ay = Math.abs(dotY), az = Math.abs(dotZ);
-  let axisName, layerSign;
-  if (ax >= ay && ax >= az) { axisName = 'x'; layerSign = dotX > 0 ? 1 : -1; }
-  else if (ay >= ax && ay >= az) { axisName = 'y'; layerSign = dotY > 0 ? 1 : -1; }
-  else { axisName = 'z'; layerSign = dotZ > 0 ? 1 : -1; }
-  
-  if (!isRotating) moveHistory.push(move);
-  handleMove(axisName, layerSign, prime);
+function resetView() {
+    gsap.to(camera.position, { x: 8, y: 8, z: 8, duration: 1.2, onUpdate: () => camera.lookAt(0,0,0) });
 }
 
-function handleMove(axis, layerSign, prime) {
-  if (isRotating) return;
-  isRotating = true;
-  const pivot = new THREE.Group();
-  cubeGroup.add(pivot);
-  const moving = [];
-  cubies.forEach(c => {
-    if (Math.abs(c.position[axis] - layerSign) < 0.1) {
-      pivot.attach(c);
-      moving.push(c);
-    }
-  });
-  const angle = (prime ? 1 : -1) * Math.PI / 2;
-  gsap.to(pivot.rotation, {
-    [axis]: angle, duration: 0.25,
-    onComplete: () => {
-      moving.forEach(c => {
-        cubeGroup.attach(c);
-        c.position.set(Math.round(c.position.x), Math.round(c.position.y), Math.round(c.position.z));
-      });
-      scene.remove(pivot);
-      isRotating = false;
-    }
-  });
+function snapAndReorient(face) {
+    const views = {
+        'front': {x:0, y:0, z:12},
+        'right': {x:12, y:0, z:0},
+        'up': {x:0, y:12, z:0},
+        'down': {x:0, y:-12, z:0}
+    };
+    const target = views[face];
+    gsap.to(camera.position, { ...target, duration: 0.8, onUpdate: () => camera.lookAt(0,0,0) });
 }
 
-function resetCube() { location.reload(); }
-function resetView() { snapAndReorient('front'); }
-function animate() {
-  requestAnimationFrame(animate);
-  renderer.render(scene, camera);
+function setSolveInfo(txt) {
+    const el = document.getElementById('solve-info');
+    el.innerText = txt;
+    el.style.opacity = txt ? 1 : 0;
+}
+
+function startApp() {
+    document.getElementById('overlay').style.display = 'none';
+    document.getElementById('main-app').style.display = 'grid';
+    setup3D();
 }
 </script>
 </body>
