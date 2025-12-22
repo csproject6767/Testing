@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CubeZilla v5.0 | Complete Optimal Solver</title>
+    <title>CubeZilla v5.0 | Complete & Correct</title>
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/gsap.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/cubejs@0.4.1/cube.min.js"></script>
@@ -21,19 +21,19 @@
         .pop-btn { padding: 14px 28px; background: linear-gradient(135deg, #6366f1, #8b5cf6); color: white; border: none; border-radius: 999px; cursor: pointer; font-weight: 600; margin: 5px; }
         #controls { padding: 20px; background: #0b1120; display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; }
         #container { flex: 1; position: relative; }
-        #info { position: absolute; top: 20px; left: 50%; transform: translateX(-50%); background: rgba(15,23,42,0.9); padding: 10px 20px; border-radius: 999px; border: 1px solid #6366f1; opacity: 0; transition: opacity 0.3s; z-index: 10; color: var(--text-muted); }
-        .camera-column { position: absolute; left: 20px; top: 50%; transform: translateY(-50%); display: flex; flex-direction: column; gap: 10px; }
-        .camera-btn { background: #1e293b; color: white; border: 1px solid #334155; padding: 10px; border-radius: 10px; cursor: pointer; width: 50px; }
-        .move-bar { position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%); display: flex; gap: 5px; background: rgba(15,23,42,0.9); padding: 10px; border-radius: 20px; border: 1px solid #6366f1; }
-        .move-btn { background: #1e293b; color: white; border: 1px solid #334155; padding: 8px 12px; border-radius: 8px; cursor: pointer; font-size: 0.9rem; }
+        #info { position: absolute; top: 20px; left: 50%; transform: translateX(-50%); background: rgba(15,23,42,0.9); padding: 10px 20px; border-radius: 999px; border: 1px solid #6366f1; opacity: 0; transition: opacity 0.3s; z-index: 10; color: var(--text-muted); font-size: 0.9rem; }
+        .camera-column { position: absolute; left: 20px; top: 50%; transform: translateY(-50%); display: flex; flex-direction: column; gap: 10px; z-index: 10; }
+        .camera-btn { background: #1e293b; color: white; border: 1px solid #334155; padding: 10px; border-radius: 10px; cursor: pointer; width: 50px; font-weight: bold; }
+        .move-bar { position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%); display: flex; gap: 8px; background: rgba(15,23,42,0.9); padding: 12px; border-radius: 20px; border: 1px solid #6366f1; z-index: 10; }
+        .move-btn { background: #1e293b; color: white; border: 1px solid #334155; padding: 8px 14px; border-radius: 8px; cursor: pointer; font-size: 0.9rem; font-weight: bold; }
     </style>
 </head>
 <body>
 
 <div id="overlay">
     <div class="page">
-        <h1>CubeZilla v5.0 Complete</h1>
-        <p>Full optimal solver with 3D cube. Click to load.</p>
+        <h1>CubeZilla v5.0</h1>
+        <p>Complete optimal solver with correct turn directions.</p>
         <button class="pop-btn" onclick="startApp()">Start</button>
     </div>
 </div>
@@ -44,7 +44,7 @@
     <button class="pop-btn" onclick="solveCube()">Solve Optimal</button>
     <button class="pop-btn" onclick="resetCube()">Reset</button>
 </div>
-<div id="info">Loading...</div>
+<div id="info"></div>
 
 <div class="camera-column">
     <button class="camera-btn" onclick="snapAndReorient('front')">F</button>
@@ -68,7 +68,7 @@
 <script>
     let scene, camera, renderer, cubeGroup, cubies = [];
     let isRotating = false, isChangingView = false, solveMode = false;
-    let currentView = { theta: -0.8, phi: 0.6 };
+    let currentView = { theta: 0.8, phi: 0.4 };
     const zoomDistance = 12;
     let moveQueue = [];
     let cubeInstance;
@@ -77,15 +77,12 @@
 
     function startApp() {
         document.getElementById('overlay').style.display = 'none';
-        if (typeof Cube === 'undefined') {
-            document.getElementById('info').textContent = 'Solver library failed to load. Basic cube only.';
-            document.getElementById('info').style.opacity = 1;
-        } else {
-            cubeInstance = new Cube();
+        cubeInstance = typeof Cube !== 'undefined' ? new Cube() : null;
+        if (cubeInstance) {
             Cube.initSolver();
-            document.getElementById('info').textContent = 'Solver ready.';
-            document.getElementById('info').style.opacity = 1;
-            setTimeout(() => document.getElementById('info').style.opacity = 0, 2000);
+            setInfo('Optimal solver ready');
+        } else {
+            setInfo('Solver not loaded (basic mode)');
         }
         setup3D();
     }
@@ -101,16 +98,13 @@
         renderer.setPixelRatio(window.devicePixelRatio);
         container.appendChild(renderer.domElement);
 
-        const ambient = new THREE.AmbientLight(0xffffff, 0.8);
-        scene.add(ambient);
-        const light = new THREE.DirectionalLight(0xffffff, 1);
-        light.position.set(5, 10, 7);
-        scene.add(light);
+        scene.add(new THREE.AmbientLight(0xffffff, 0.8));
+        scene.add(new THREE.DirectionalLight(0xffffff, 1).position.set(5, 10, 7));
 
         cubeGroup = new THREE.Group();
         scene.add(cubeGroup);
 
-        const materials = FACE_COLORS.map(color => new THREE.MeshLambertMaterial({ color }));
+        const materials = FACE_COLORS.map(c => new THREE.MeshLambertMaterial({ color: c }));
 
         for (let x = -1; x <= 1; x++) {
             for (let y = -1; y <= 1; y++) {
@@ -170,25 +164,26 @@
         const pivot = new THREE.Group();
         cubeGroup.add(pivot);
 
-        const moving = cubies.filter(c => Math.round(c.position[axis]) === layer);
+        const moving = cubies.filter(c => Math.abs(c.position[axis] - layer) < 0.1);
         moving.forEach(c => pivot.attach(c));
 
         const angle = clockwise ? Math.PI / 2 : -Math.PI / 2;
-        const duration = solveMode ? 0.8 : 0.4;
+        const duration = solveMode ? 0.7 : 0.4;
+
         gsap.to(pivot.rotation, {
-            [axis]: gsap.utils.interpolate(pivot.rotation[axis], pivot.rotation[axis] + angle, 1),
+            [axis]: pivot.rotation[axis] + angle,
             duration,
             ease: "power2.inOut",
             onComplete: () => {
                 moving.forEach(c => {
                     cubeGroup.attach(c);
-                    c.position.set(Math.round(c.position.x), Math.round(c.position.y), Math.round(c.position.z));
+                    c.position.copy(c.position.applyAxisAngle(new THREE.Vector3().setFromMatrixColumn(pivot.matrix, 0), angle).set(
+                        Math.round(c.position.x), Math.round(c.position.y), Math.round(c.position.z)
+                    ));
                 });
                 cubeGroup.remove(pivot);
                 isRotating = false;
-                if (solveMode && moveQueue.length > 0) {
-                    setTimeout(executeNextMove, 200);
-                }
+                if (solveMode && moveQueue.length > 0) setTimeout(executeNextMove, 200);
             }
         });
     }
@@ -200,16 +195,15 @@
     }
 
     function performMove(notation) {
-        if (!notation) return;
-        const two = notation.includes('2');
         const prime = notation.includes("'");
-        const face = notation.replace(/['2]/g, '');
+        const two = notation.includes("2");
+        const face = notation[0];
         const map = { U: ['y', 1], D: ['y', -1], R: ['x', 1], L: ['x', -1], F: ['z', 1], B: ['z', -1] };
         const [axis, layer] = map[face];
         const turns = two ? 2 : 1;
-        const clockwise = !prime;
-        for (let t = 0; t < turns; t++) {
-            handleMove(axis, layer, clockwise);
+        const dir = !prime;
+        for (let i = 0; i < turns; i++) {
+            handleMove(axis, layer, dir);
         }
         if (cubeInstance) cubeInstance.move(notation);
     }
@@ -218,8 +212,34 @@
         if (isRotating || isChangingView || solveMode) return;
         const prime = move.endsWith('_prime');
         const base = move.replace('_prime', '');
-        const faceMap = { R: 'R', L: 'L', U: 'U', D: 'D', F: 'F', B: 'B' };
-        const notation = faceMap[base] + (prime ? "'" : '');
+
+        camera.updateMatrixWorld();
+        const forward = new THREE.Vector3();
+        camera.getWorldDirection(forward).negate();
+        const right = new THREE.Vector3().setFromMatrixColumn(camera.matrixWorld, 0);
+        const up = new THREE.Vector3().setFromMatrixColumn(camera.matrixWorld, 1);
+
+        const directions = {
+            R: right, L: right.clone().negate(),
+            U: up, D: up.clone().negate(),
+            F: forward, B: forward.clone().negate()
+        };
+        const dir = directions[base];
+
+        const dots = {
+            x: Math.abs(dir.dot(new THREE.Vector3(1,0,0))),
+            y: Math.abs(dir.dot(new THREE.Vector3(0,1,0))),
+            z: Math.abs(dir.dot(new THREE.Vector3(0,0,1)))
+        };
+        let axis = 'x';
+        if (dots.y > dots.x && dots.y > dots.z) axis = 'y';
+        if (dots.z > dots.x && dots.z > dots.y) axis = 'z';
+
+        const layerSign = dir.dot(axis === 'x' ? new THREE.Vector3(1,0,0) : axis === 'y' ? new THREE.Vector3(0,1,0) : new THREE.Vector3(0,0,1)) > 0 ? 1 : -1;
+        const faceMap = { x: { 1: 'R', '-1': 'L' }, y: { 1: 'U', '-1': 'D' }, z: { 1: 'F', '-1': 'B' } };
+        const detectedFace = faceMap[axis][layerSign];
+        const notation = detectedFace + (prime ? "'" : '');
+
         performMove(notation);
     }
 
@@ -228,19 +248,20 @@
         solveMode = true;
         moveQueue = [];
         if (cubeInstance) {
-            const scrambleStr = cubeInstance.randomize();
-            moveQueue = scrambleStr.split(' ');
+            cubeInstance = new Cube();
+            const scr = cubeInstance.randomize();
+            moveQueue = scr.split(' ');
         } else {
-            // Fallback random moves
+            const faces = ['R','L','U','D','F','B'];
             for (let i = 0; i < 25; i++) {
-                const faces = ['R', 'L', 'U', 'D', 'F', 'B'];
-                const face = faces[Math.floor(Math.random() * faces.length)];
-                const mods = ['', "'", '2'];
-                moveQueue.push(face + mods[Math.floor(Math.random() * mods.length)]);
+                const f = faces[Math.floor(Math.random()*6)];
+                const mod = Math.random() < 0.3 ? '2' : Math.random() < 0.5 ? "'" : '';
+                moveQueue.push(f + mod);
             }
         }
         setInfo('Scrambling...');
         executeNextMove();
+        setTimeout(() => { solveMode = false; setInfo(''); }, moveQueue.length * 600);
     }
 
     function solveCube() {
@@ -250,28 +271,25 @@
         const solution = cubeInstance.solve();
         moveQueue = solution.trim().split(' ');
         setInfo(`Solving in ${moveQueue.length} moves...`);
-        setTimeout(() => executeNextMove(), 1000);
+        executeNextMove();
+        setTimeout(() => {
+            setInfo('Solved! 🎉');
+            setTimeout(() => { setInfo(''); solveMode = false; }, 3000);
+        }, moveQueue.length * 700 + 1000);
     }
 
     function setInfo(text) {
         const el = document.getElementById('info');
-        el.textContent = text;
-        el.style.opacity = 1;
-        if (!text) setTimeout(() => el.style.opacity = 0, 2000);
+        el.textContent = text || '';
+        el.style.opacity = text ? 1 : 0;
     }
 
     function resetCube() {
-        solveMode = false;
-        moveQueue = [];
-        if (cubeInstance) cubeInstance = new Cube();
-        location.reload(); // Simple reset
+        location.reload();
     }
 
     function animate() {
         requestAnimationFrame(animate);
-        if (!solveMode && !isRotating && !isChangingView) {
-            cubeGroup.rotation.y += 0.005;
-        }
         renderer.render(scene, camera);
     }
 </script>
