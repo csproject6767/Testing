@@ -213,6 +213,15 @@ body {
 #timer-control:hover {
   background: linear-gradient(135deg, #16a34a, #15803d);
 }
+
+/* NEW: Learn button style */
+#learn-btn {
+  background: linear-gradient(135deg, #a855f7, #9333ea);
+  box-shadow: 0 12px 30px rgba(168,85,247,0.4);
+}
+#learn-btn:hover {
+  background: linear-gradient(135deg, #9333ea, #7e22ce);
+}
 </style>
 </head>
 <body>
@@ -247,6 +256,9 @@ body {
     <div id="timer-display">00:00.0</div>
     <button id="timer-control" class="pop-btn" onclick="toggleTimer()">▶ Start Timer</button>
 
+    <!-- NEW: Learn Button -->
+    <button id="learn-btn" class="pop-btn" onclick="learnSolve()">📚 Learn Solve (slow)</button>
+
     <button class="pop-btn" onclick="scramble()">Scramble</button>
     <button class="pop-btn" onclick="solveCube()">Solve</button>
     <button class="pop-btn" onclick="resetCube()">Reset Cube</button>
@@ -275,7 +287,7 @@ body {
     </div>
     <div id="paint-palette" style="position:absolute; bottom:90px; right:40px; display:none; flex-direction:column; gap:10px; align-items:center;">
       <div style="display:flex; gap:8px;">
-        <div onclick="selectPaintColor('U')" style="width:24px;height:24px;border-radius:50%;background:#ffffff;border:2px solid #000000;cursor:pointer;"></div>
+        <div onclick="selectPaintColor('U')" style="width:24px;height:24px;border-radius:50%;background:#ffffff;border:2px solid #e5e7eb;cursor:pointer;"></div>
         <div onclick="selectPaintColor('D')" style="width:24px;height:24px;border-radius:50%;background:#facc15;cursor:pointer;"></div>
         <div onclick="selectPaintColor('R')" style="width:24px;height:24px;border-radius:50%;background:#ef4444;cursor:pointer;"></div>
         <div onclick="selectPaintColor('L')" style="width:24px;height:24px;border-radius:50%;background:#f97316;cursor:pointer;"></div>
@@ -358,6 +370,55 @@ function updateTimerDisplay() {
   }
 }
 
+/* NEW: Learn Solve function (slow teaching mode) */
+function learnSolve() {
+  if (moveHistory.length === 0) return;
+  const titleEl = document.getElementById('method-title');
+  const originalTitle = titleEl.innerText;
+  const reverseMoves = moveHistory
+    .slice()
+    .reverse()
+    .map(m => m.endsWith('_prime') ? m.replace('_prime','') : m + '_prime');
+  const spicePairs = ['R','L','U','F'];
+  const spicy = [];
+  for (let i = 0; i < 4; i++) {
+    const base = spicePairs[Math.floor(Math.random() * spicePairs.length)];
+    spicy.push(base);
+    spicy.push(base.endsWith('_prime') ? base.replace('_prime','') : base + '_prime');
+  }
+  const solveSequence = spicy.concat(reverseMoves);
+  let idx = 0;
+  const total = solveSequence.length;
+  titleEl.innerText = 'Analyzing scramble slowly...';
+  setSolveInfo(pickRandom(solveMessages.scan));
+  setTimeout(() => {
+    titleEl.innerText = 'Evaluating strategies...';
+    setSolveInfo(pickRandom(solveMessages.eval));
+    setTimeout(() => {
+      titleEl.innerText = 'Found optimal method';
+      setSolveInfo(pickRandom(solveMessages.method));
+      setTimeout(() => {
+        setSolveInfo(pickRandom(solveMessages.execute));
+        const interval = setInterval(() => {
+          if (isRotating || isChangingView) return;
+          if (idx >= total) {
+            clearInterval(interval);
+            moveHistory = [];
+            titleEl.innerText = 'Solved! 🎉';
+            setSolveInfo('Observe how moves were optimized');
+            setTimeout(() => { titleEl.innerText = originalTitle; setSolveInfo(''); }, 3000);
+            return;
+          }
+          const remainingReal = Math.max(0, reverseMoves.length - Math.max(0, idx - spicy.length));
+          titleEl.innerText = `Teaching (${remainingReal}/${reverseMoves.length})...`;
+          screenMove(solveSequence[idx]);
+          idx++;
+        }, 800); // Much slower than normal solve (320ms → 800ms)
+      }, 2000); // Longer thinking pauses
+    }, 2000);
+  }, 2000);
+}
+
 function pickRandom(list) { return list[Math.floor(Math.random() * list.length)]; }
 function setSolveInfo(text) {
   const el = document.getElementById('solve-info');
@@ -366,7 +427,7 @@ function setSolveInfo(text) {
   el.style.opacity = text ? '1' : '0';
 }
 function showHowItWorks() {
-  alert(`HOW THE APP WORKS\n1) Scramble\n- Press “Scramble” or do your own moves.\n2) Play\n- Use face buttons to rotate view and move buttons to turn faces.\n3) Solve\n- Press “Solve” to watch the AI rewind every move with extra efficiency.`);
+  alert(`HOW THE APP WORKS\n1) Scramble\n- Press “Scramble” or do your own moves.\n2) Play\n- Use face buttons to rotate view and move buttons to turn faces.\n3) Solve\n- Press “Solve” to watch the AI rewind every move with extra efficiency.\n4) Learn\n- Press “Learn Solve” for a slow, educational playback.`);
 }
 function backToMenu() { 
   resetTimer();
@@ -376,8 +437,7 @@ function startSolver() {
   document.getElementById('overlay').style.display = 'none';
   document.getElementById('main-app').style.display = 'grid';
   setup3D();
-  resetTimer();  // Reset and wait for manual start
-  // Removed automatic startTimer() here
+  resetTimer();
 }
 
 function scramble() {
